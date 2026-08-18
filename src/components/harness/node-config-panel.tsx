@@ -9,17 +9,19 @@
  *   - condition   : label, field, op, value
  *   - end         : just label
  */
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Settings2, Cpu, GitBranch, Zap, CircleStop } from "lucide-react";
+import { Settings2, Cpu, GitBranch, Zap, CircleStop, RefreshCw, Loader2, Lightbulb } from "lucide-react";
+import { toast } from "sonner";
 import type { WorkflowNodeData, NodeType } from "@/lib/workflow/types";
 
 interface NodeConfigPanelProps {
@@ -35,12 +37,24 @@ const NODE_TYPE_ICONS: Record<NodeType, React.ComponentType<{ className?: string
 };
 
 export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
+  const queryClient = useQueryClient();
   const { data: credsData } = useQuery({ queryKey: ["credentials"], queryFn: api.listCredentials });
 
-  const { data: modelsData } = useQuery({
+  const selectedCredential = credsData?.credentials.find((c) => c.id === node?.data.credentialId);
+
+  const { data: modelsData, isLoading: modelsLoading } = useQuery({
     queryKey: ["models", node?.data.credentialId],
     queryFn: () => api.listModels(node!.data.credentialId!),
     enabled: !!node?.data.credentialId,
+  });
+
+  const discoverMutation = useMutation({
+    mutationFn: () => api.discoverModels(node!.data.credentialId!),
+    onSuccess: (data) => {
+      toast.success(`Discovered ${data.count} models`);
+      queryClient.invalidateQueries({ queryKey: ["models", node?.data.credentialId] });
+    },
+    onError: (e: Error) => toast.error(`Discovery failed: ${e.message}`),
   });
 
   if (!node) {
@@ -112,7 +126,10 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
                 <SelectContent>
                   {credsData?.credentials.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
-                      {c.name}
+                      <span className="truncate">{c.name}</span>
+                      <span className="text-muted-foreground ml-2 text-xs">
+                        {c.providerLabel || c.provider}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -124,30 +141,91 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
               )}
             </div>
 
-            {/* Model picker — populated from discovered models */}
+            {/* Model picker — populated from discovered models, fallback to knownModels */}
             <div className="space-y-2">
-              <Label>Model</Label>
-              {data.credentialId ? (
-                <Select
-                  value={data.modelId || ""}
-                  onValueChange={(v) => update({ modelId: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pick a model..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {modelsData?.models.map((m) => (
-                      <SelectItem key={m.id} value={m.modelId}>
-                        {m.displayName}
-                      </SelectItem>
-                    ))}
-                    {modelsData && modelsData.models.length === 0 && (
-                      <div className="px-2 py-3 text-xs text-muted-foreground">
-                        No models discovered. Click &quot;Discover&quot; in the Credentials tab.
-                      </div>
+              <div className="flex items-center justify-between">
+                <Label>Model</Label>
+                {data.credentialId && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs px-2"
+                    onClick={() => discoverMutation.mutate()}
+                    disabled={discoverMutation.isPending}
+                  >
+                    {discoverMutation.isPending ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-3 h-3" />
                     )}
-                  </SelectContent>
-                </Select>
+                    Discover
+                  </Button>
+                )}
+              </div>
+              {data.credentialId ? (
+                <>
+                  {modelsLoading ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Loading models...
+                    </div>
+                  ) : modelsData && modelsData.models.length > 0 ? (
+                    <Select
+                      value={data.modelId || ""}
+                      onValueChange={(v) => update({ modelId: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pick a model..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {modelsData.models.map((m) => (
+                          <SelectItem key={m.id} value={m.modelId}>
+                            <span className="font-mono">{m.modelId}</span>
+                            {m.displayName !== m.modelId && (
+                              <span className="text-muted-foreground ml-2 text-xs">
+                                {m.displayName}
+                              </span>
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="space-y-2">
+                      <Input
+                        value={data.modelId || ""}
+                        onChange={(e) => update({ modelId: e.target.value })}
+                        placeholder="Type a model id (e.g. glm-5.3)..."
+                        className="font-mono text-xs"
+                      />
+                      {selectedCredential?.knownModels && selectedCredential.knownModels.length > 0 && (
+                        <div className="rounded-md bg-muted/40 p-2">
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                            <Lightbulb className="w-2.5 h-2.5" /> Suggested models
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {selectedCredential.knownModels.map((m) => (
+                              <button
+                                key={m}
+                                type="button"
+                                onClick={() => update({ modelId: m })}
+                                className={`text-[10px] font-mono px-1.5 py-0.5 rounded border transition-colors ${
+                                  data.modelId === m
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "bg-background border-border hover:border-primary/40 hover:bg-muted"
+                                }`}
+                              >
+                                {m}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-1.5">
+                            Click &quot;Discover&quot; above to fetch the live list from the provider.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               ) : (
                 <p className="text-xs text-muted-foreground">Select a credential first.</p>
               )}

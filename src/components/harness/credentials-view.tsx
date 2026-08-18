@@ -27,6 +27,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   KeyRound,
@@ -108,7 +109,7 @@ export function CredentialsView() {
               </div>
               <div className="text-xs text-muted-foreground flex items-center gap-2">
                 <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
-                  {PROVIDER_LABELS[c.provider] || c.provider}
+                  {c.providerLabel || PROVIDER_LABELS[c.provider] || c.provider}
                 </Badge>
                 <span className="truncate">{c.apiKeyMasked}</span>
               </div>
@@ -216,7 +217,7 @@ function CredentialDetail({
               </CardTitle>
               <CardDescription className="mt-1">
                 <Badge variant="secondary" className="mr-2">
-                  {PROVIDER_LABELS[credential.provider] || credential.provider}
+                  {credential.providerLabel || PROVIDER_LABELS[credential.provider] || credential.provider}
                 </Badge>
                 <span className="font-mono text-xs">{credential.apiKeyMasked}</span>
               </CardDescription>
@@ -381,17 +382,37 @@ function CreateCredentialDialog({
   const [apiKey, setApiKey] = useState("");
   const [baseUrlOverride, setBaseUrlOverride] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [autoDiscover, setAutoDiscover] = useState(true);
 
-  // Group presets by their canonical provider key for display
-  const groupedPresets = presets.reduce<Record<string, typeof presets>>((acc, p) => {
-    if (!acc[p.key]) acc[p.key] = [];
-    acc[p.key].push(p);
+  // Group presets by semantic category for nicer display in the dropdown
+  const CATEGORY_GROUPS: { label: string; match: (p: typeof presets[number]) => boolean }[] = [
+    {
+      label: "Major labs",
+      match: (p) =>
+        ["Anthropic (Claude)", "Z.ai (GLM)", "DeepSeek", "OpenAI", "xAI (Grok)", "MiniMax", "Moonshot (Kimi)", "Mistral", "Google (Gemini)"].includes(p.label),
+    },
+    {
+      label: "Inference platforms",
+      match: (p) =>
+        ["OpenRouter", "Groq", "Together AI", "Perplexity (sonar)", "Cohere (Command)", "Fireworks AI", "Novita AI", "AI21 Labs (Jamba)"].includes(p.label),
+    },
+    {
+      label: "Local / Self-hosted",
+      match: (p) => ["Ollama (local)", "LM Studio (local)", "vLLM / SGLang / Custom"].includes(p.label),
+    },
+  ];
+  function categoryFor(preset: typeof presets[number]): string {
+    for (const cat of CATEGORY_GROUPS) if (cat.match(preset)) return cat.label;
+    return "Other";
+  }
+  const byCategory = presets.reduce<Record<string, typeof presets>>((acc, p) => {
+    const c = categoryFor(p);
+    if (!acc[c]) acc[c] = [];
+    acc[c].push(p);
     return acc;
   }, {});
 
   const selectedPreset = presets.find((p) => `${p.key}::${p.label}` === selectedPresetKey);
-  // When the preset changes, drop any user override so the default is used again.
-  // (We use a `key`-based reset on the field below instead of an effect.)
   const baseUrl = baseUrlOverride ?? selectedPreset?.defaultBaseUrl ?? "";
 
   const createMutation = useMutation({
@@ -400,13 +421,18 @@ function CreateCredentialDialog({
       return api.createCredential({
         name: name || selectedPreset.label,
         providerKey: selectedPreset.key,
+        providerLabel: selectedPreset.label,
         baseUrl,
         apiKey,
         notes,
+        autoDiscover,
       });
     },
-    onSuccess: () => {
-      toast.success("Credential created");
+    onSuccess: (data) => {
+      const msg = autoDiscover && data.discoveredCount > 0
+        ? `Credential created · ${data.discoveredCount} models discovered`
+        : "Credential created";
+      toast.success(msg);
       queryClient.invalidateQueries({ queryKey: ["credentials"] });
       onOpenChange(false);
       setName("");
@@ -414,6 +440,7 @@ function CreateCredentialDialog({
       setBaseUrlOverride(null);
       setNotes("");
       setSelectedPresetKey("");
+      setAutoDiscover(true);
     },
     onError: (e: Error) => toast.error(`Create failed: ${e.message}`),
   });
@@ -424,7 +451,8 @@ function CreateCredentialDialog({
         <DialogHeader>
           <DialogTitle>Add Credential</DialogTitle>
           <DialogDescription>
-            Pick a provider preset, then enter your API key. Base URL is pre-filled but editable.
+            Pick a provider, enter your API key. Base URL is pre-filled but editable.
+            Models are auto-discovered unless you disable it below.
           </DialogDescription>
         </DialogHeader>
 
@@ -442,18 +470,22 @@ function CreateCredentialDialog({
                 <SelectValue placeholder="Select provider..." />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(groupedPresets).map(([groupKey, items]) => (
-                  <div key={groupKey}>
-                    <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-                      {PROVIDER_LABELS[groupKey] || groupKey}
+                {CATEGORY_GROUPS.map((cat) => {
+                  const items = byCategory[cat.label] || [];
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={cat.label}>
+                      <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {cat.label}
+                      </div>
+                      {items.map((p) => (
+                        <SelectItem key={`${p.key}::${p.label}`} value={`${p.key}::${p.label}`}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
                     </div>
-                    {items.map((p) => (
-                      <SelectItem key={`${p.key}::${p.label}`} value={`${p.key}::${p.label}`}>
-                        {p.label}
-                      </SelectItem>
-                    ))}
-                  </div>
-                ))}
+                  );
+                })}
               </SelectContent>
             </Select>
             {selectedPreset && (
@@ -469,6 +501,21 @@ function CreateCredentialDialog({
                 Provider docs <ExternalLink className="w-3 h-3" />
               </a>
             )}
+            {/* Show known models as a hint even before discovery */}
+            {selectedPreset && selectedPreset.knownModels && selectedPreset.knownModels.length > 0 && (
+              <div className="rounded-md bg-muted/40 p-2">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  Known models
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {selectedPreset.knownModels.map((m) => (
+                    <Badge key={m} variant="secondary" className="text-[10px] font-mono px-1.5 py-0 h-4.5">
+                      {m}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -477,7 +524,7 @@ function CreateCredentialDialog({
               id="new-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="My Anthropic key"
+              placeholder={selectedPreset?.label || "My API key"}
             />
           </div>
 
@@ -513,6 +560,27 @@ function CreateCredentialDialog({
               rows={2}
             />
           </div>
+
+          {/* Auto-discover toggle */}
+          {selectedPreset && (
+            <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+              <div className="flex-1 min-w-0">
+                <Label htmlFor="auto-discover" className="text-sm font-medium cursor-pointer">
+                  Auto-discover models
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {selectedPreset.supportsDiscovery
+                    ? "Fetch the model list via /v1/models right after creating."
+                    : "Use the built-in model list (Anthropic doesn't expose /v1/models)."}
+                </p>
+              </div>
+              <Switch
+                id="auto-discover"
+                checked={autoDiscover}
+                onCheckedChange={setAutoDiscover}
+              />
+            </div>
+          )}
         </div>
 
         <DialogFooter>

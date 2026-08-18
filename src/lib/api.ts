@@ -6,9 +6,12 @@ export interface Credential {
   id: string;
   name: string;
   provider: string;
+  providerLabel?: string;
   baseUrl: string | null;
   apiKeyMasked: string;
   notes?: string;
+  knownModels?: string[];
+  discoveredModelCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -110,12 +113,14 @@ export const api = {
   createCredential: (body: {
     name: string;
     providerKey: string;
+    providerLabel?: string;
     baseUrl?: string;
     apiKey: string;
     organization?: string;
     headers?: Record<string, string>;
     notes?: string;
-  }) => jsonFetch<Credential>("/api/credentials", { method: "POST", body: JSON.stringify(body) }),
+    autoDiscover?: boolean;
+  }) => jsonFetch<Credential & { discoveredCount: number }>("/api/credentials", { method: "POST", body: JSON.stringify(body) }),
   deleteCredential: (id: string) =>
     jsonFetch<{ ok: true }>(`/api/credentials/${id}`, { method: "DELETE" }),
   updateCredential: (id: string, body: { name?: string; notes?: string; apiKey?: string; baseUrl?: string }) =>

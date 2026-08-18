@@ -15,7 +15,8 @@ datasource db {
 model Credential {
   id          String   @id @default(cuid())
   name        String
-  provider    String   // "anthropic" | "openai_compatible"
+  provider    String   // canonical key: "anthropic" | "openai_compatible"
+  providerLabel String? // human-readable preset label, e.g. "Z.ai (GLM)" | "xAI (Grok)"
   baseUrl     String?
   // Encrypted blob containing apiKey, organization, headers, etc.
   // JSON: { apiKey, organization?, headers? } encrypted via AES-256-GCM.

@@ -26,12 +26,13 @@ const ANTHROPIC_DEFAULT_BASE = "https://api.anthropic.com";
 // Anthropic model catalog (subset — Anthropic doesn't expose a /v1/models list
 // in the same way as OpenAI, so we hardcode the common ones).
 const ANTHROPIC_MODELS = [
-  { id: "claude-opus-4-1-20250805", displayName: "Claude Opus 4.1" },
   { id: "claude-opus-4-5", displayName: "Claude Opus 4.5" },
+  { id: "claude-opus-4-1-20250805", displayName: "Claude Opus 4.1" },
   { id: "claude-sonnet-4-5", displayName: "Claude Sonnet 4.5" },
   { id: "claude-sonnet-4-5-20250929", displayName: "Claude Sonnet 4.5 (dated)" },
   { id: "claude-haiku-4-5", displayName: "Claude Haiku 4.5" },
   { id: "claude-3-7-sonnet-20250219", displayName: "Claude 3.7 Sonnet" },
+  { id: "claude-3-5-sonnet-20241022", displayName: "Claude 3.5 Sonnet" },
   { id: "claude-3-5-haiku-20241022", displayName: "Claude 3.5 Haiku" },
 ];
 
