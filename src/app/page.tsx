@@ -6,6 +6,9 @@
  *   - Credentials : CRUD with model discovery
  *   - Executions  : list + replay
  *   - Settings    : gateway status, env vars for Claude Code
+ *
+ * If a PIN is set and the app is locked (or no PIN set yet), the LockScreen
+ * is shown instead of the main app.
  */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -15,6 +18,9 @@ import { HarnessListView, HarnessEditor } from "@/components/harness/harness-edi
 import { ExecutionsView } from "@/components/harness/executions-view";
 import { SettingsView } from "@/components/harness/settings-view";
 import { LanguageSwitcher } from "@/components/harness/language-switcher";
+import { LockButton } from "@/components/harness/lock-button";
+import { LockScreen } from "@/components/harness/lock-screen";
+import { useAuth } from "@/lib/auth/provider";
 import { useTranslation } from "@/lib/i18n/provider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -24,15 +30,26 @@ type TabKey = "harnesses" | "credentials" | "executions" | "settings";
 
 export default function Home() {
   const { t } = useTranslation();
+  const { status } = useAuth();
   const [tab, setTab] = useState<TabKey>("harnesses");
   const [editingHarnessId, setEditingHarnessId] = useState<string | null>(null);
 
-  // Show a small banner if no harness is deployed
+  // Show a small banner if no harness is deployed.
+  // Note: this hook must run on every render, regardless of lock state.
   const { data: settings } = useQuery({
     queryKey: ["settings"],
     queryFn: api.getSettings,
     refetchInterval: 5000,
+    // Skip fetching when locked — saves a request and avoids prisma noise
+    enabled: status.unlocked,
   });
+
+  // If app is locked (or no PIN set yet), show the lock screen
+  // instead of the main app. The LockScreen handles both unlock
+  // (PIN exists) and setup (no PIN yet) modes.
+  if (!status.unlocked) {
+    return <LockScreen />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -53,6 +70,7 @@ export default function Home() {
 
           <div className="flex-1" />
 
+          <LockButton />
           <LanguageSwitcher />
 
           {/* Gateway status pill */}

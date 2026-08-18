@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle2, AlertTriangle, Terminal, Rocket, ShieldCheck, Loader2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/provider";
+import { PinSettingsSection } from "@/components/harness/pin-settings-section";
 
 export function SettingsView() {
   const { t } = useTranslation();
@@ -34,6 +35,10 @@ export function SettingsView() {
           {t("settings.subtitle")}
         </p>
       </div>
+
+      {/* PIN / local protection — top of settings because it's the first thing
+          users should configure when they install the app. */}
+      <PinSettingsSection />
 
       {/* Status grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

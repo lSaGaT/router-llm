@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LanguageProvider } from "@/lib/i18n/provider";
+import { AuthProvider } from "@/lib/auth/provider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(
@@ -19,7 +20,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
   return (
     <QueryClientProvider client={client}>
-      <LanguageProvider>{children}</LanguageProvider>
+      <AuthProvider>
+        <LanguageProvider>{children}</LanguageProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

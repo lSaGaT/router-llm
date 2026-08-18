@@ -114,18 +114,30 @@ function HarnessEditorInner({ harnessId, onBack }: HarnessEditorProps) {
     [selectedNodeId, graph.nodes],
   );
 
-  const handleAddNode = (type: NodeType) => {
-    // Place new nodes near the center of the current viewport (simplified: just offset)
-    const offset = graph.nodes.length * 30;
-    const newNode = makeNewNode(type, {
-      x: 250 + (offset % 300),
-      y: 150 + Math.floor(offset / 300) * 120,
-    });
+  const handleAddNode = (type: NodeType, position?: { x: number; y: number }) => {
+    // Place new nodes either at a drop position or in a horizontal row going right.
+    const idx = graph.nodes.length;
+    const pos = position ?? { x: 280 + idx * 280, y: 200 + (idx % 3) * 100 - 100 };
+    const newNode = makeNewNode(type, pos);
     setGraph((prev) => ({
       ...prev,
       nodes: [...prev.nodes, newNode as unknown as WorkflowDefinition["nodes"][number]],
     }));
     setSelectedNodeId(newNode.id);
+  };
+
+  // Drag-and-drop from palette → canvas
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const type = e.dataTransfer.getData("application/reactflow") as NodeType;
+    if (!type) return;
+    // Convert drop position to canvas coordinates
+    const bounds = e.currentTarget.getBoundingClientRect();
+    const position = {
+      x: e.clientX - bounds.left - 90, // center the node
+      y: e.clientY - bounds.top - 25,
+    };
+    handleAddNode(type, position);
   };
 
   const handleNodeChange = (id: string, patch: Partial<WorkflowNodeData>) => {
@@ -229,7 +241,14 @@ function HarnessEditorInner({ harnessId, onBack }: HarnessEditorProps) {
           </div>
         </ResizablePanel>
         <ResizablePanel defaultSize={62} minSize={40}>
-          <div className="h-full relative">
+          <div
+            className="h-full relative"
+            onDrop={handleDrop}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+            }}
+          >
             <HarnessCanvas
               initialGraph={graph}
               onChange={setGraph}

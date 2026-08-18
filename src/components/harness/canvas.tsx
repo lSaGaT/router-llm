@@ -74,17 +74,22 @@ function HarnessNodeComponent({ data, selected }: HarnessNodeProps) {
   return (
     <div
       className={cn(
-        "px-3 py-2 rounded-lg border-2 bg-card shadow-sm min-w-[180px] transition-shadow",
+        "relative px-3 py-2 rounded-lg border-2 bg-card shadow-sm min-w-[180px] transition-shadow",
         meta.color,
         selected && "ring-2 ring-offset-1 ring-primary/40",
       )}
     >
+      {/* Target handle on the LEFT (horizontal flow) */}
       {data.nodeType !== "trigger" && (
-        <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2.5 !h-2.5 !border-2 !border-background" />
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!bg-muted-foreground !w-2.5 !h-2.5 !border-2 !border-background"
+        />
       )}
 
-      <div className="flex items-center gap-2">
-        <Icon className="w-3.5 h-3.5" />
+      <div className="flex items-center gap-2 pr-3">
+        <Icon className="w-3.5 h-3.5 flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="text-xs font-semibold truncate">{data.label}</div>
           <div className="text-[10px] opacity-80 truncate">
@@ -96,37 +101,36 @@ function HarnessNodeComponent({ data, selected }: HarnessNodeProps) {
         </div>
       </div>
 
-      {/* Branch handles for condition nodes */}
+      {/* Source handles on the RIGHT (horizontal flow) */}
       {data.nodeType === "condition" ? (
-        <>
-          <div className="flex justify-between mt-2 px-1">
-            <div className="flex flex-col items-center">
-              <span className="text-[9px] font-mono opacity-70">{t("canvas.edges.true")}</span>
-              <Handle
-                type="source"
-                position={Position.Bottom}
-                id="true"
-                className="!bg-emerald-500 !w-2.5 !h-2.5 !border-2 !border-background"
-                style={{ left: "25%" }}
-              />
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="text-[9px] font-mono opacity-70">{t("canvas.edges.false")}</span>
-              <Handle
-                type="source"
-                position={Position.Bottom}
-                id="false"
-                className="!bg-rose-500 !w-2.5 !h-2.5 !border-2 !border-background"
-                style={{ left: "75%" }}
-              />
-            </div>
+        // Condition: two source handles on the right — TRUE on top, FALSE on bottom
+        <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between py-2 pointer-events-none">
+          <div className="flex items-center gap-0.5 pointer-events-auto" style={{ transform: "translateX(50%)" }}>
+            <span className="text-[9px] font-mono opacity-70 bg-card px-0.5 rounded">{t("canvas.edges.true")}</span>
+            <Handle
+              type="source"
+              position={Position.Right}
+              id="true"
+              className="!bg-emerald-500 !w-2.5 !h-2.5 !border-2 !border-background !relative"
+              style={{ position: "relative", right: "auto", transform: "none" }}
+            />
           </div>
-        </>
+          <div className="flex items-center gap-0.5 pointer-events-auto" style={{ transform: "translateX(50%)" }}>
+            <span className="text-[9px] font-mono opacity-70 bg-card px-0.5 rounded">{t("canvas.edges.false")}</span>
+            <Handle
+              type="source"
+              position={Position.Right}
+              id="false"
+              className="!bg-rose-500 !w-2.5 !h-2.5 !border-2 !border-background !relative"
+              style={{ position: "relative", right: "auto", transform: "none" }}
+            />
+          </div>
+        </div>
       ) : (
         data.nodeType !== "end" && (
           <Handle
             type="source"
-            position={Position.Bottom}
+            position={Position.Right}
             className="!bg-muted-foreground !w-2.5 !h-2.5 !border-2 !border-background"
           />
         )
@@ -142,24 +146,25 @@ const nodeTypes = { harnessNode: HarnessNodeComponent };
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function createDefaultWorkflow(): WorkflowDefinition {
+  // Horizontal layout: Trigger (left) → Model (middle) → End (right)
   return {
     nodes: [
       {
         id: "trigger",
         type: "harnessNode",
-        position: { x: 250, y: 0 },
+        position: { x: 0, y: 200 },
         data: { label: "Trigger", nodeType: "trigger" },
       },
       {
         id: "model-1",
         type: "harnessNode",
-        position: { x: 250, y: 120 },
+        position: { x: 280, y: 200 },
         data: { label: "Planner", nodeType: "model", temperature: 0.3, maxTokens: 2048 },
       },
       {
         id: "end",
         type: "harnessNode",
-        position: { x: 250, y: 280 },
+        position: { x: 560, y: 200 },
         data: { label: "End", nodeType: "end" },
       },
     ],
@@ -278,11 +283,11 @@ export function HarnessCanvas({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Palette — drag/click to add new nodes
+// Palette — drag to canvas OR click to add. n8n-style.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface PaletteProps {
-  onAddNode: (type: NodeType) => void;
+  onAddNode: (type: NodeType, position?: { x: number; y: number }) => void;
 }
 
 export function NodePalette({ onAddNode }: PaletteProps) {
@@ -300,13 +305,19 @@ export function NodePalette({ onAddNode }: PaletteProps) {
         const meta = NODE_META[item.type];
         const Icon = meta.icon;
         return (
-          <button
+          <div
             key={item.type}
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData("application/reactflow", item.type);
+              e.dataTransfer.effectAllowed = "move";
+            }}
             onClick={() => onAddNode(item.type)}
             className={cn(
-              "flex items-center gap-2.5 p-2.5 rounded-md border text-left transition-colors",
+              "flex items-center gap-2.5 p-2.5 rounded-md border text-left transition-colors cursor-grab active:cursor-grabbing",
               "border-border hover:border-primary/40 hover:bg-muted/40",
             )}
+            title={t("canvas.palette.dragHint")}
           >
             <div className={cn("p-1.5 rounded border", meta.color)}>
               <Icon className="w-3.5 h-3.5" />
@@ -316,9 +327,12 @@ export function NodePalette({ onAddNode }: PaletteProps) {
               <div className="text-[10px] text-muted-foreground">{item.desc}</div>
             </div>
             <ChevronRight className="w-3 h-3 text-muted-foreground" />
-          </button>
+          </div>
         );
       })}
+      <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
+        {t("canvas.palette.dragHint")}
+      </p>
     </div>
   );
 }

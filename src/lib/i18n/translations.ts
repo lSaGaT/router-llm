@@ -145,6 +145,7 @@ interface TranslationDict {
       conditionDesc: string;
       end: string;
       endDesc: string;
+      dragHint: string;
     };
     nodes: {
       trigger: string;
@@ -241,6 +242,40 @@ interface TranslationDict {
       failed: string;
       cancelled: string;
     };
+  };
+
+  // ─── Auth / Lock ───
+  auth: {
+    lockTitle: string;
+    lockSubtitle: string;
+    pinPlaceholder: string;
+    unlock: string;
+    wrongPin: string;
+    setupTitle: string;
+    setupSubtitle: string;
+    setupPin: string;
+    setupConfirm: string;
+    setupCreate: string;
+    setupMismatch: string;
+    setupTooShort: string;
+    noPinSkip: string;
+    noPinSkipHint: string;
+    lockButton: string;
+    lockButtonTitle: string;
+    pinSection: string;
+    pinSectionDesc: string;
+    setPin: string;
+    changePin: string;
+    removePin: string;
+    pinActive: string;
+    pinInactive: string;
+    autoLock: string;
+    autoLockDesc: string;
+    autoLockNever: string;
+    autoLock1m: string;
+    autoLock5m: string;
+    autoLock15m: string;
+    autoLock60m: string;
   };
 
   // ─── Settings ───
@@ -404,6 +439,7 @@ const ptBR: TranslationDict = {
       conditionDesc: "Ramifica por variável",
       end: "Fim",
       endDesc: "Termina o workflow",
+      dragHint: "Arraste para o canvas ou clique para adicionar.",
     },
     nodes: {
       trigger: "Trigger",
@@ -497,6 +533,40 @@ const ptBR: TranslationDict = {
       cancelled: "cancelada",
     },
   },
+
+  auth: {
+    lockTitle: "Aplicativo travado",
+    lockSubtitle: "Digite seu PIN para destravar e continuar.",
+    pinPlaceholder: "••••",
+    unlock: "Destravar",
+    wrongPin: "PIN incorreto. Tente novamente.",
+    setupTitle: "Criar PIN de acesso",
+    setupSubtitle: "Proteja suas credenciais com um PIN local. Você precisará digitá-lo para destravar o app.",
+    setupPin: "Novo PIN (mínimo 4 dígitos)",
+    setupConfirm: "Confirmar PIN",
+    setupCreate: "Criar PIN",
+    setupMismatch: "Os PINs não coincidem.",
+    setupTooShort: "O PIN deve ter pelo menos 4 dígitos.",
+    noPinSkip: "Pular (não recomendado)",
+    noPinSkipHint: "Suas credenciais ficarão acessíveis a qualquer pessoa que usar este computador.",
+    lockButton: "Travar",
+    lockButtonTitle: "Travar aplicativo",
+    pinSection: "Proteção local",
+    pinSectionDesc: "Defina um PIN para travar o aplicativo. Útil quando você precisa sair do computador e não quer que outras pessoas vejam suas credenciais.",
+    setPin: "Definir PIN",
+    changePin: "Alterar PIN",
+    removePin: "Remover PIN",
+    pinActive: "PIN ativo",
+    pinInactive: "Sem PIN configurado",
+    autoLock: "Travar automaticamente",
+    autoLockDesc: "Trava o app após um período de inatividade.",
+    autoLockNever: "Nunca",
+    autoLock1m: "1 minuto",
+    autoLock5m: "5 minutos",
+    autoLock15m: "15 minutos",
+    autoLock60m: "1 hora",
+  },
+
   settings: {
     title: "Configurações",
     subtitle: "Configure o Claude Code para apontar para este gateway. Self-hosted, single-tenant — sem auth multi-tenant.",
@@ -657,6 +727,7 @@ const en: TranslationDict = {
       conditionDesc: "Branch on variable",
       end: "End",
       endDesc: "Terminate workflow",
+      dragHint: "Drag to the canvas or click to add.",
     },
     nodes: {
       trigger: "Trigger",
@@ -750,6 +821,40 @@ const en: TranslationDict = {
       cancelled: "cancelled",
     },
   },
+
+  auth: {
+    lockTitle: "App locked",
+    lockSubtitle: "Enter your PIN to unlock and continue.",
+    pinPlaceholder: "••••",
+    unlock: "Unlock",
+    wrongPin: "Wrong PIN. Try again.",
+    setupTitle: "Create access PIN",
+    setupSubtitle: "Protect your credentials with a local PIN. You'll need to enter it to unlock the app.",
+    setupPin: "New PIN (min 4 digits)",
+    setupConfirm: "Confirm PIN",
+    setupCreate: "Create PIN",
+    setupMismatch: "PINs don't match.",
+    setupTooShort: "PIN must be at least 4 digits.",
+    noPinSkip: "Skip (not recommended)",
+    noPinSkipHint: "Your credentials will be accessible to anyone using this computer.",
+    lockButton: "Lock",
+    lockButtonTitle: "Lock app",
+    pinSection: "Local protection",
+    pinSectionDesc: "Set a PIN to lock the app. Useful when you need to step away from the computer and don't want others to see your credentials.",
+    setPin: "Set PIN",
+    changePin: "Change PIN",
+    removePin: "Remove PIN",
+    pinActive: "PIN active",
+    pinInactive: "No PIN configured",
+    autoLock: "Auto-lock",
+    autoLockDesc: "Locks the app after a period of inactivity.",
+    autoLockNever: "Never",
+    autoLock1m: "1 minute",
+    autoLock5m: "5 minutes",
+    autoLock15m: "15 minutes",
+    autoLock60m: "1 hour",
+  },
+
   settings: {
     title: "Settings",
     subtitle: "Configure Claude Code to point at this gateway. Self-hosted, single-tenant — no multi-tenant auth required.",
@@ -910,6 +1015,7 @@ const es: TranslationDict = {
       conditionDesc: "Bifurca por variable",
       end: "Fin",
       endDesc: "Termina el workflow",
+      dragHint: "Arrastra al canvas o haz clic para añadir.",
     },
     nodes: {
       trigger: "Trigger",
@@ -1003,6 +1109,39 @@ const es: TranslationDict = {
       cancelled: "cancelada",
     },
   },
+  auth: {
+    lockTitle: "App bloqueada",
+    lockSubtitle: "Ingresa tu PIN para desbloquear y continuar.",
+    pinPlaceholder: "••••",
+    unlock: "Desbloquear",
+    wrongPin: "PIN incorrecto. Inténtalo de nuevo.",
+    setupTitle: "Crear PIN de acceso",
+    setupSubtitle: "Protege tus credenciales con un PIN local. Tendrás que introducirlo para desbloquear la app.",
+    setupPin: "Nuevo PIN (mín 4 dígitos)",
+    setupConfirm: "Confirmar PIN",
+    setupCreate: "Crear PIN",
+    setupMismatch: "Los PINs no coinciden.",
+    setupTooShort: "El PIN debe tener al menos 4 dígitos.",
+    noPinSkip: "Saltar (no recomendado)",
+    noPinSkipHint: "Tus credenciales serán accesibles para cualquiera que use este ordenador.",
+    lockButton: "Bloquear",
+    lockButtonTitle: "Bloquear app",
+    pinSection: "Protección local",
+    pinSectionDesc: "Establece un PIN para bloquear la app. Útil cuando necesitas ausentarte del ordenador y no quieres que otros vean tus credenciales.",
+    setPin: "Establecer PIN",
+    changePin: "Cambiar PIN",
+    removePin: "Eliminar PIN",
+    pinActive: "PIN activo",
+    pinInactive: "Sin PIN configurado",
+    autoLock: "Bloqueo automático",
+    autoLockDesc: "Bloquea la app tras un periodo de inactividad.",
+    autoLockNever: "Nunca",
+    autoLock1m: "1 minuto",
+    autoLock5m: "5 minutos",
+    autoLock15m: "15 minutos",
+    autoLock60m: "1 hora",
+  },
+
   settings: {
     title: "Configuración",
     subtitle: "Configura Claude Code para apuntar a este gateway. Self-hosted, single-tenant — sin auth multi-tenant.",
