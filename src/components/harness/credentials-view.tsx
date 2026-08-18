@@ -9,7 +9,7 @@
  * enters the API key + base URL, and saves. After saving, a "Discover models"
  * button fetches the provider's /v1/models endpoint and caches them.
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type Credential, type ProviderModel } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -121,6 +121,7 @@ export function CredentialsView() {
       <div className="min-h-0 overflow-y-auto pr-1 custom-scrollbar">
         {selected ? (
           <CredentialDetail
+            key={selected.id}
             credential={selected}
             onDelete={() => deleteMutation.mutate(selected.id)}
             isDeleting={deleteMutation.isPending}
@@ -171,13 +172,6 @@ function CredentialDetail({
   const [baseUrl, setBaseUrl] = useState(credential.baseUrl || "");
   const [apiKey, setApiKey] = useState("");
   const [notes, setNotes] = useState(credential.notes || "");
-
-  useEffect(() => {
-    setName(credential.name);
-    setBaseUrl(credential.baseUrl || "");
-    setApiKey("");
-    setNotes(credential.notes || "");
-  }, [credential]);
 
   const { data: modelsData, isLoading: modelsLoading } = useQuery({
     queryKey: ["models", credential.id],
@@ -385,7 +379,7 @@ function CreateCredentialDialog({
   const [selectedPresetKey, setSelectedPresetKey] = useState<string>("");
   const [name, setName] = useState("");
   const [apiKey, setApiKey] = useState("");
-  const [baseUrl, setBaseUrl] = useState("");
+  const [baseUrlOverride, setBaseUrlOverride] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
 
   // Group presets by their canonical provider key for display
@@ -396,12 +390,9 @@ function CreateCredentialDialog({
   }, {});
 
   const selectedPreset = presets.find((p) => `${p.key}::${p.label}` === selectedPresetKey);
-
-  useEffect(() => {
-    if (selectedPreset) {
-      setBaseUrl(selectedPreset.defaultBaseUrl || "");
-    }
-  }, [selectedPreset]);
+  // When the preset changes, drop any user override so the default is used again.
+  // (We use a `key`-based reset on the field below instead of an effect.)
+  const baseUrl = baseUrlOverride ?? selectedPreset?.defaultBaseUrl ?? "";
 
   const createMutation = useMutation({
     mutationFn: () => {
@@ -420,7 +411,7 @@ function CreateCredentialDialog({
       onOpenChange(false);
       setName("");
       setApiKey("");
-      setBaseUrl("");
+      setBaseUrlOverride(null);
       setNotes("");
       setSelectedPresetKey("");
     },
@@ -440,7 +431,13 @@ function CreateCredentialDialog({
         <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
           <div className="space-y-2">
             <Label>Provider</Label>
-            <Select value={selectedPresetKey} onValueChange={setSelectedPresetKey}>
+            <Select
+              value={selectedPresetKey}
+              onValueChange={(v) => {
+                setSelectedPresetKey(v);
+                setBaseUrlOverride(null);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select provider..." />
               </SelectTrigger>
@@ -501,7 +498,7 @@ function CreateCredentialDialog({
               <Input
                 id="new-baseurl"
                 value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
+                onChange={(e) => setBaseUrlOverride(e.target.value)}
                 placeholder="https://api.example.com/v1"
               />
             </div>

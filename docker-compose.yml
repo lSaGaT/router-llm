@@ -1,0 +1,33 @@
+# LLM Harness — production-style Docker Compose
+#
+# One service for MVP: Next.js handles UI + Gateway + Engine in a single process.
+# For Phase 2 (Human Approval nodes, multi-worker), split into separate services.
+
+services:
+  llm-harness:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: llm-harness
+    ports:
+      - "3000:3000"
+    environment:
+      # In production, always set a strong encryption key (32+ hex chars).
+      # Generate with: openssl rand -hex 32
+      HARNESS_ENCRYPTION_KEY: ${HARNESS_ENCRYPTION_KEY:?Set HARNESS_ENCRYPTION_KEY in .env}
+      # Optional shared secret for Claude Code to authenticate.
+      HARNESS_API_KEY: ${HARNESS_API_KEY:-}
+      DATABASE_URL: file:/app/db/custom.db
+      NODE_ENV: production
+    volumes:
+      - harness-db:/app/db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/settings"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  harness-db:

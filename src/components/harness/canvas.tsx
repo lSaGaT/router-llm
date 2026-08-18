@@ -14,7 +14,7 @@
  * temperature, maxTokens, topP, thinking, thinkingBudget,
  * conditionField, conditionOp, conditionValue.
  */
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useRef } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -77,7 +77,7 @@ function HarnessNodeComponent({ data, selected }: HarnessNodeProps) {
         selected && "ring-2 ring-offset-1 ring-primary/40",
       )}
     >
-      {data.nodeType !== "end" && (
+      {data.nodeType !== "trigger" && (
         <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2.5 !h-2.5 !border-2 !border-background" />
       )}
 
@@ -186,22 +186,13 @@ export function HarnessCanvas({
   onNodeSelect,
   selectedNodeId,
 }: HarnessCanvasProps) {
+  // NOTE: parent must pass a stable `initialGraph` reference (e.g. via `useState`
+  // in the parent). If the parent wants to force a reload, it should pass a
+  // `key` prop so React Flow remounts. We don't sync external→internal via
+  // effect because that conflicts with React Flow's internal state.
   const [nodes, setNodes, onNodesChange] = useNodesState(initialGraph.nodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialGraph.edges as Edge[]);
   const lastEmitRef = useRef<string>("");
-
-  // Sync external → internal when the parent hands us a new graph
-  // (e.g. user loaded a different harness). We use a ref to detect true changes
-  // and avoid loops with our own onChange emission.
-  useEffect(() => {
-    const serialized = JSON.stringify(initialGraph);
-    if (serialized !== lastEmitRef.current) {
-      setNodes(initialGraph.nodes as Node[]);
-      setEdges(initialGraph.edges as Edge[]);
-      lastEmitRef.current = serialized;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialGraph]);
 
   // Emit changes up — but only when the serialized graph actually changed
   const emit = useCallback(

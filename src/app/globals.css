@@ -120,3 +120,53 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ─── React Flow base styles ─── */
+@import "reactflow/dist/style.css";
+
+/* ─── Custom scrollbar ─── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* ─── React Flow tweaks ─── */
+.react-flow__attribution {
+  display: none !important;
+}
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+.react-flow__edge.animated path {
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+@keyframes dashdraw {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+.react-flow__node {
+  font-size: 12px;
+}
+.react-flow__controls button {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--foreground);
+}
+.react-flow__controls button:hover {
+  background: var(--muted);
+}
+.react-flow__minimap {
+  background: var(--card);
+}

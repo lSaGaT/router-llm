@@ -66,7 +66,7 @@ export interface Message {
   role: "system" | "user" | "assistant" | "tool";
   content: string;
   // For Anthropic format compatibility:
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   data?: any;
 }
 
@@ -103,7 +103,7 @@ export interface AnthropicMessage {
 
 export interface AnthropicContentBlock {
   type: "text" | "tool_use" | "tool_result";
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   [key: string]: any;
 }
 
@@ -115,7 +115,7 @@ export interface AnthropicRequest {
   temperature?: number;
   top_p?: number;
   stream?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   [key: string]: any;
 }
 

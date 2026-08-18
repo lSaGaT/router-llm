@@ -88,7 +88,6 @@ export async function executeWorkflow(opts: EngineRunOptions): Promise<EngineRun
     stream,
     signal,
     log: (msg, level = "info") => {
-      // eslint-disable-next-line no-console
       console[level === "error" ? "error" : level === "warn" ? "warn" : "log"](
         `[exec:${executionId}] ${msg}`,
       );

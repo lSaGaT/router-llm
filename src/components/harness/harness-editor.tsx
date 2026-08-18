@@ -11,7 +11,7 @@
  *   │          │                          │   Panel       │
  *   └──────────┴──────────────────────────┴───────────────┘
  */
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type Harness } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -33,12 +33,15 @@ interface HarnessEditorProps {
 }
 
 export function HarnessEditor({ harnessId, onBack }: HarnessEditorProps) {
+  return <HarnessEditorInner key={harnessId} harnessId={harnessId} onBack={onBack} />;
+}
+
+function HarnessEditorInner({ harnessId, onBack }: HarnessEditorProps) {
   const queryClient = useQueryClient();
   const [graph, setGraph] = useState<WorkflowDefinition>(createDefaultWorkflow());
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
 
   const { data: harness, isLoading } = useQuery({
     queryKey: ["harness", harnessId],
@@ -46,20 +49,29 @@ export function HarnessEditor({ harnessId, onBack }: HarnessEditorProps) {
     enabled: !!harnessId,
   });
 
-  // Load graph into local state once when harness data arrives
-  useEffect(() => {
-    if (harness && !loaded) {
-      setName(harness.name);
-      setDescription(harness.description || "");
-      try {
-        const g = JSON.parse(harness.graphJson) as WorkflowDefinition;
-        setGraph(g);
-      } catch {
-        setGraph(createDefaultWorkflow());
-      }
-      setLoaded(true);
+  // Sync loaded harness → local state when the harness data first arrives or
+  // changes. We rely on the parent using `key={harnessId}` to remount when
+  // switching harnesses, so this is essentially one-shot per mount.
+  //
+  // Pattern: call set during render (allowed by React 19) + use a ref to
+  // remember we've initialized. This avoids both:
+  //   - useEffect (causes cascading renders per lint rule)
+  //   - Derived state on every render (would lose user edits)
+  // See: https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const initKey = `${harness?.id ?? ""}|${harness?.updatedAt ?? ""}`;
+  const lastInitKey = useRef<string>("");
+  // eslint-disable-next-line react-hooks/refs
+  if (harness && initKey !== lastInitKey.current) {
+    // eslint-disable-next-line react-hooks/refs
+    lastInitKey.current = initKey;
+    setName(harness.name);
+    setDescription(harness.description || "");
+    try {
+      setGraph(JSON.parse(harness.graphJson) as WorkflowDefinition);
+    } catch {
+      // keep default
     }
-  }, [harness, loaded]);
+  }
 
   const saveMutation = useMutation({
     mutationFn: () =>
