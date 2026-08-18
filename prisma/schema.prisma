@@ -1,0 +1,138 @@
+// LLM Harness — Prisma schema
+// Self-hosted, single-tenant, local-first
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// A reusable credential for an LLM provider (Anthropic, OpenAI-compatible, etc.).
+/// Stored with AES-256-GCM encryption at rest.
+model Credential {
+  id          String   @id @default(cuid())
+  name        String
+  provider    String   // "anthropic" | "openai_compatible"
+  baseUrl     String?
+  // Encrypted blob containing apiKey, organization, headers, etc.
+  // JSON: { apiKey, organization?, headers? } encrypted via AES-256-GCM.
+  encryptedSecret String
+  // Initialization vector + auth tag, base64-encoded, separated by ":"
+  ivAuth      String
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  models      ProviderModel[]
+  harnessNodes HarnessNode[]
+
+  @@index([provider])
+}
+
+/// Models discovered via /v1/models endpoint of a credential.
+model ProviderModel {
+  id            String   @id @default(cuid())
+  credentialId  String
+  credential    Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  modelId       String   // e.g. "claude-opus-4-5", "glm-4.6", "deepseek-chat"
+  displayName   String
+  contextWindow Int?     // in tokens
+  isVision      Boolean  @default(false)
+  isReasoning   Boolean  @default(false)
+  inputCostPer1M Float? // USD per 1M input tokens
+  outputCostPer1M Float? // USD per 1M output tokens
+  lastSeenAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@unique([credentialId, modelId])
+  @@index([credentialId])
+}
+
+/// A visual harness — a workflow that orchestrates LLMs and tools.
+model Harness {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  // JSON: { nodes: [...], edges: [...], viewport: {...} } — React Flow format
+  graphJson   String   // WorkflowDefinition JSON-serialized
+  isDeployed  Boolean  @default(false)
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  executions  Execution[]
+  nodes       HarnessNode[]
+
+  @@index([isDeployed])
+}
+
+/// Optional: persisted node templates (library of reusable nodes).
+/// Future enhancement — for MVP we use the in-memory node registry.
+model HarnessNode {
+  id          String   @id @default(cuid())
+  harnessId   String
+  harness     Harness  @relation(fields: [harnessId], references: [id], onDelete: Cascade)
+  nodeId      String   // ID inside the React Flow graph (matches graphJson)
+  nodeType    String   // "trigger" | "model" | "condition" | "end"
+  label       String?
+  credentialId String?
+  credential  Credential? @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+  modelId     String?
+  createdAt   DateTime @default(now())
+
+  @@index([harnessId])
+}
+
+/// One execution of a harness (one Claude Code request → one execution).
+model Execution {
+  id          String   @id @default(cuid())
+  harnessId   String?
+  harness     Harness? @relation(fields: [harnessId], references: [id], onDelete: SetNull)
+  // Input: the original Anthropic-format request body received at the gateway
+  requestJson String
+  // Final output (Anthropic-format response)
+  responseJson String?
+  status      String   // "running" | "completed" | "failed" | "cancelled"
+  errorMessage String?
+  totalTokensIn  Int   @default(0)
+  totalTokensOut Int   @default(0)
+  totalCostUsd  Float  @default(0)
+  durationMs  Int     @default(0)
+  startedAt   DateTime @default(now())
+  finishedAt  DateTime?
+
+  nodeRuns    NodeRun[]
+
+  @@index([harnessId])
+  @@index([status])
+  @@index([startedAt])
+}
+
+/// Per-node execution log — used for replay/debug.
+model NodeRun {
+  id          String   @id @default(cuid())
+  executionId String
+  execution   Execution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  nodeId      String   // ID inside the graph
+  nodeType    String
+  nodeLabel   String?
+  status      String   // "running" | "completed" | "failed" | "skipped"
+  inputJson   String?  // JSON-serialized input (messages, context, etc.)
+  outputJson  String?  // JSON-serialized output
+  // LLM-specific:
+  modelUsed   String?
+  credentialId String?
+  tokensIn    Int      @default(0)
+  tokensOut   Int      @default(0)
+  costUsd     Float    @default(0)
+  latencyMs   Int      @default(0)
+  errorMessage String?
+  startedAt   DateTime @default(now())
+  finishedAt  DateTime?
+
+  @@index([executionId])
+  @@index([nodeId])
+}
