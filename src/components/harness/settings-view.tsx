@@ -9,8 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle2, AlertTriangle, Terminal, Rocket, ShieldCheck, Loader2 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/provider";
 
 export function SettingsView() {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({ queryKey: ["settings"], queryFn: api.getSettings });
 
   if (isLoading || !data) {
@@ -27,10 +29,9 @@ export function SettingsView() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h2 className="text-lg font-semibold">Settings</h2>
+        <h2 className="text-lg font-semibold">{t("settings.title")}</h2>
         <p className="text-sm text-muted-foreground">
-          Configure Claude Code to point at this gateway. Self-hosted, single-tenant — no
-          multi-tenant auth required.
+          {t("settings.subtitle")}
         </p>
       </div>
 
@@ -38,24 +39,24 @@ export function SettingsView() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <StatusCard
           icon={Rocket}
-          label="Deployed harness"
+          label={t("settings.deployedHarness")}
           ok={data.hasDeployedHarness}
-          okText="Active"
-          notOkText="Not deployed"
+          okText={t("settings.deployedHarnessOk")}
+          notOkText={t("settings.deployedHarnessNotOk")}
         />
         <StatusCard
           icon={ShieldCheck}
-          label="Auth (HARNESS_API_KEY)"
+          label={t("settings.authEnabled")}
           ok={data.authEnabled}
-          okText="Enabled"
-          notOkText="Open (no auth)"
+          okText={t("settings.authEnabledOk")}
+          notOkText={t("settings.authEnabledNotOk")}
         />
         <StatusCard
           icon={ShieldCheck}
-          label="Encryption (HARNESS_ENCRYPTION_KEY)"
+          label={t("settings.encryptionKey")}
           ok={data.encryptionKeySet}
-          okText="Enabled"
-          notOkText="Using dev fallback"
+          okText={t("settings.encryptionKeyOk")}
+          notOkText={t("settings.encryptionKeyNotOk")}
         />
       </div>
 
@@ -63,11 +64,9 @@ export function SettingsView() {
       {!data.encryptionKeySet && (
         <Alert variant="destructive">
           <AlertTriangle className="w-4 h-4" />
-          <AlertTitle>Encryption key not set</AlertTitle>
+          <AlertTitle>{t("settings.encryptionWarningTitle")}</AlertTitle>
           <AlertDescription>
-            API keys are encrypted with <code className="font-mono">HARNESS_ENCRYPTION_KEY</code>,
-            but it is not set — using a deterministic dev fallback. Generate a strong key and
-            add it to <code className="font-mono">.env</code> before deploying for real:
+            {t("settings.encryptionWarningBody")}
             <pre className="text-xs font-mono mt-2 bg-muted/40 p-2 rounded">
               {`# Generate a strong random key
 openssl rand -hex 32
@@ -82,10 +81,9 @@ HARNESS_ENCRYPTION_KEY=<paste-here>`}
       {!data.hasDeployedHarness && (
         <Alert>
           <AlertTriangle className="w-4 h-4" />
-          <AlertTitle>No harness deployed yet</AlertTitle>
+          <AlertTitle>{t("settings.noHarnessWarningTitle")}</AlertTitle>
           <AlertDescription>
-            Open the <strong>Harnesses</strong> tab, create or open a harness, then click
-            <strong> Deploy</strong>. Only deployed harnesses receive requests from the gateway.
+            {t("settings.noHarnessWarningBody")}<strong>{t("nav.harnesses")}</strong>{t("settings.noHarnessWarningBody2")}<strong> {t("harnesses.deploy")}</strong>.{t("settings.noHarnessWarningBody3")}
           </AlertDescription>
         </Alert>
       )}
@@ -95,28 +93,24 @@ HARNESS_ENCRYPTION_KEY=<paste-here>`}
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Terminal className="w-4 h-4" />
-            Claude Code setup
+            {t("settings.setupTitle")}
           </CardTitle>
           <CardDescription>
-            Set these environment variables in your shell before running{" "}
-            <code className="font-mono">claude</code>. Claude Code will then route every
-            request through this gateway.
+            {t("settings.setupDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <pre className="text-xs font-mono bg-muted/40 p-4 rounded-md overflow-x-auto">
-            {`# Point Claude Code at this gateway instead of api.anthropic.com
+            {`${t("settings.setupComment")}
 export ANTHROPIC_BASE_URL=${gatewayHost}${data.gatewayBaseUrl}
 
-# Use the HARNESS_API_KEY from your .env (or any value if auth is disabled)
+${t("settings.setupComment2")}
 export ANTHROPIC_API_KEY=${data.claudeCodeEnv.ANTHROPIC_API_KEY}
 
-# Then run claude as usual
-claude`}
+# claude`}
           </pre>
           <p className="text-xs text-muted-foreground mt-3">
-            You can put these in your <code className="font-mono">~/.bashrc</code> or{" "}
-            <code className="font-mono">~/.zshrc</code> to make them permanent.
+            {t("settings.setupHint")}<code className="font-mono">~/.bashrc</code>{t("settings.setupHint2")}<code className="font-mono">~/.zshrc</code>.
           </p>
         </CardContent>
       </Card>
@@ -124,21 +118,21 @@ claude`}
       {/* Gateway info */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Gateway endpoints</CardTitle>
-          <CardDescription>Anthropic-compatible API surface.</CardDescription>
+          <CardTitle className="text-base">{t("settings.gatewayEndpoints")}</CardTitle>
+          <CardDescription>{t("settings.gatewayEndpointsDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <div className="flex items-center justify-between">
-            <code className="font-mono text-xs">POST /api/v1/messages</code>
-            <Badge variant="secondary">Anthropic Messages API</Badge>
+            <code className="font-mono text-xs">{t("settings.endpoints.postMessages")}</code>
+            <Badge variant="secondary">{t("settings.endpointLabels.anthropic")}</Badge>
           </div>
           <div className="flex items-center justify-between">
-            <code className="font-mono text-xs">GET /api/v1/models</code>
-            <Badge variant="secondary">Models list</Badge>
+            <code className="font-mono text-xs">{t("settings.endpoints.getModels")}</code>
+            <Badge variant="secondary">{t("settings.endpointLabels.modelsList")}</Badge>
           </div>
           <div className="flex items-center justify-between">
-            <code className="font-mono text-xs">GET /api/v1/messages</code>
-            <Badge variant="secondary">Same (alias)</Badge>
+            <code className="font-mono text-xs">{t("settings.endpoints.getMessagesAlias")}</code>
+            <Badge variant="secondary">{t("settings.endpointLabels.alias")}</Badge>
           </div>
         </CardContent>
       </Card>

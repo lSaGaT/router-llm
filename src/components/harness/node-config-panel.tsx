@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Settings2, Cpu, GitBranch, Zap, CircleStop, RefreshCw, Loader2, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/provider";
 import type { WorkflowNodeData, NodeType } from "@/lib/workflow/types";
 
 interface NodeConfigPanelProps {
@@ -37,6 +38,7 @@ const NODE_TYPE_ICONS: Record<NodeType, React.ComponentType<{ className?: string
 };
 
 export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data: credsData } = useQuery({ queryKey: ["credentials"], queryFn: api.listCredentials });
 
@@ -51,10 +53,10 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
   const discoverMutation = useMutation({
     mutationFn: () => api.discoverModels(node!.data.credentialId!),
     onSuccess: (data) => {
-      toast.success(`Discovered ${data.count} models`);
+      toast.success(t("credentials.discoveredToast", { count: data.count }));
       queryClient.invalidateQueries({ queryKey: ["models", node?.data.credentialId] });
     },
-    onError: (e: Error) => toast.error(`Discovery failed: ${e.message}`),
+    onError: (e: Error) => toast.error(`${e.message}`),
   });
 
   if (!node) {
@@ -62,9 +64,9 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
       <div className="h-full flex items-center justify-center p-6">
         <div className="text-center">
           <Settings2 className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
-          <div className="text-sm font-medium">No node selected</div>
+          <div className="text-sm font-medium">{t("nodeConfig.noSelection")}</div>
           <div className="text-xs text-muted-foreground mt-1">
-            Click a node on the canvas to edit its properties.
+            {t("nodeConfig.noSelectionHint")}
           </div>
         </div>
       </div>
@@ -97,17 +99,13 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
       <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-5">
         {data.nodeType === "trigger" && (
           <div className="text-sm text-muted-foreground">
-            The trigger node is the entry point of the workflow. Every request
-            received by the gateway starts here and flows through the connected
-            edge.
+            {t("nodeConfig.triggerDesc")}
           </div>
         )}
 
         {data.nodeType === "end" && (
           <div className="text-sm text-muted-foreground">
-            The end node terminates the workflow. The last assistant message
-            produced upstream is sent back to the client (Claude Code) as the
-            final response.
+            {t("nodeConfig.endDesc")}
           </div>
         )}
 
@@ -115,13 +113,13 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
           <>
             {/* Credential picker */}
             <div className="space-y-2">
-              <Label>Credential</Label>
+              <Label>{t("nodeConfig.credential")}</Label>
               <Select
                 value={data.credentialId || ""}
                 onValueChange={(v) => update({ credentialId: v, modelId: undefined })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select credential..." />
+                  <SelectValue placeholder={t("common.selectCredential")} />
                 </SelectTrigger>
                 <SelectContent>
                   {credsData?.credentials.map((c) => (
@@ -136,7 +134,7 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
               </Select>
               {credsData && credsData.credentials.length === 0 && (
                 <p className="text-xs text-amber-600">
-                  No credentials yet. Create one in the Credentials tab first.
+                  {t("nodeConfig.noCredentialsWarning")}
                 </p>
               )}
             </div>
@@ -144,7 +142,7 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
             {/* Model picker — populated from discovered models, fallback to knownModels */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Model</Label>
+                <Label>{t("nodeConfig.model")}</Label>
                 {data.credentialId && (
                   <Button
                     size="sm"
@@ -158,7 +156,7 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
                     ) : (
                       <RefreshCw className="w-3 h-3" />
                     )}
-                    Discover
+                    {t("common.discover")}
                   </Button>
                 )}
               </div>
@@ -166,7 +164,7 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
                 <>
                   {modelsLoading ? (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Loading models...
+                      <Loader2 className="w-3 h-3 animate-spin" /> {t("common.loading")}
                     </div>
                   ) : modelsData && modelsData.models.length > 0 ? (
                     <Select
@@ -174,7 +172,7 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
                       onValueChange={(v) => update({ modelId: v })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Pick a model..." />
+                        <SelectValue placeholder={t("common.pickProvider")} />
                       </SelectTrigger>
                       <SelectContent>
                         {modelsData.models.map((m) => (
@@ -194,13 +192,13 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
                       <Input
                         value={data.modelId || ""}
                         onChange={(e) => update({ modelId: e.target.value })}
-                        placeholder="Type a model id (e.g. glm-5.3)..."
+                        placeholder={t("nodeConfig.modelPlaceholder")}
                         className="font-mono text-xs"
                       />
                       {selectedCredential?.knownModels && selectedCredential.knownModels.length > 0 && (
                         <div className="rounded-md bg-muted/40 p-2">
                           <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                            <Lightbulb className="w-2.5 h-2.5" /> Suggested models
+                            <Lightbulb className="w-2.5 h-2.5" /> {t("nodeConfig.suggestedModels")}
                           </div>
                           <div className="flex flex-wrap gap-1">
                             {selectedCredential.knownModels.map((m) => (
@@ -219,7 +217,7 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
                             ))}
                           </div>
                           <p className="text-[10px] text-muted-foreground mt-1.5">
-                            Click &quot;Discover&quot; above to fetch the live list from the provider.
+                            {t("nodeConfig.suggestedModelsHint")}
                           </p>
                         </div>
                       )}
@@ -227,7 +225,7 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
                   )}
                 </>
               ) : (
-                <p className="text-xs text-muted-foreground">Select a credential first.</p>
+                <p className="text-xs text-muted-foreground">{t("common.selectCredentialFirst")}</p>
               )}
             </div>
 
@@ -235,13 +233,13 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
 
             {/* System prompt */}
             <div className="space-y-2">
-              <Label htmlFor="np-system">System Prompt</Label>
+              <Label htmlFor="np-system">{t("nodeConfig.systemPrompt")}</Label>
               <Textarea
                 id="np-system"
                 value={data.systemPrompt || ""}
                 onChange={(e) => update({ systemPrompt: e.target.value })}
                 rows={5}
-                placeholder="You are a meticulous code reviewer..."
+                placeholder={t("nodeConfig.systemPromptPlaceholder")}
                 className="font-mono text-xs"
               />
             </div>
@@ -251,7 +249,7 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
             {/* Sampling parameters */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Temperature</Label>
+                <Label>{t("nodeConfig.temperature")}</Label>
                 <span className="text-xs font-mono text-muted-foreground">
                   {(data.temperature ?? 0.7).toFixed(2)}
                 </span>
@@ -267,7 +265,7 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Max output tokens</Label>
+                <Label>{t("nodeConfig.maxTokens")}</Label>
                 <span className="text-xs font-mono text-muted-foreground">{data.maxTokens ?? 4096}</span>
               </div>
               <Slider
@@ -281,7 +279,7 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Top P</Label>
+                <Label>{t("nodeConfig.topP")}</Label>
                 <span className="text-xs font-mono text-muted-foreground">
                   {(data.topP ?? 1).toFixed(2)}
                 </span>
@@ -301,9 +299,9 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label htmlFor="np-thinking">Extended thinking</Label>
+                  <Label htmlFor="np-thinking">{t("nodeConfig.extendedThinking")}</Label>
                   <p className="text-xs text-muted-foreground">
-                    Enables reasoning mode (Claude extended thinking, GLM thinking, DeepSeek R1).
+                    {t("nodeConfig.extendedThinkingDesc")}
                   </p>
                 </div>
                 <Switch
@@ -315,7 +313,7 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
               {data.thinking && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs">Thinking budget (tokens)</Label>
+                    <Label className="text-xs">{t("nodeConfig.thinkingBudget")}</Label>
                     <span className="text-xs font-mono text-muted-foreground">
                       {data.thinkingBudget ?? 4096}
                     </span>
@@ -336,24 +334,21 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
         {data.nodeType === "condition" && (
           <>
             <div className="text-sm text-muted-foreground">
-              Branch based on a variable from the conversation. If the variable
-              doesn&apos;t exist in <code className="text-xs px-1 py-0.5 bg-muted rounded">variables</code>,
-              the engine tries to extract it from the last assistant message
-              (e.g. <code className="text-xs px-1 py-0.5 bg-muted rounded">score: 72</code>).
+              {t("nodeConfig.conditionDesc")}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cond-field">Field</Label>
+              <Label htmlFor="cond-field">{t("nodeConfig.conditionField")}</Label>
               <Input
                 id="cond-field"
                 value={data.conditionField || ""}
                 onChange={(e) => update({ conditionField: e.target.value })}
-                placeholder="score | tokens | complexity | approved"
+                placeholder={t("nodeConfig.conditionFieldPlaceholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Operator</Label>
+              <Label>{t("nodeConfig.operator")}</Label>
               <Select
                 value={data.conditionOp || ">"}
                 onValueChange={(v) => update({ conditionOp: v as WorkflowNodeData["conditionOp"] })}
@@ -362,19 +357,19 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value=">">&gt; greater than</SelectItem>
-                  <SelectItem value=">=">&gt;= greater or equal</SelectItem>
-                  <SelectItem value="<">&lt; less than</SelectItem>
-                  <SelectItem value="<=">&lt;= less or equal</SelectItem>
-                  <SelectItem value="==">== equal</SelectItem>
-                  <SelectItem value="!=">!= not equal</SelectItem>
-                  <SelectItem value="contains">contains (substring)</SelectItem>
+                  <SelectItem value=">">{t("nodeConfig.operators.>")}</SelectItem>
+                  <SelectItem value=">=">{t("nodeConfig.operators.>=")}</SelectItem>
+                  <SelectItem value="<">{t("nodeConfig.operators.<")}</SelectItem>
+                  <SelectItem value="<=">{t("nodeConfig.operators.<=")}</SelectItem>
+                  <SelectItem value="==">{t("nodeConfig.operators.==")}</SelectItem>
+                  <SelectItem value="!=">{t("nodeConfig.operators.!=")}</SelectItem>
+                  <SelectItem value="contains">{t("nodeConfig.operators.contains")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cond-value">Value</Label>
+              <Label htmlFor="cond-value">{t("nodeConfig.value")}</Label>
               <Input
                 id="cond-value"
                 value={String(data.conditionValue ?? "")}
@@ -384,10 +379,10 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
                   const parsed = /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v;
                   update({ conditionValue: parsed });
                 }}
-                placeholder="7 | 100000 | high | true"
+                placeholder={t("nodeConfig.valuePlaceholder")}
               />
               <p className="text-xs text-muted-foreground">
-                Tip: numbers are compared numerically; strings are compared lexically.
+                {t("nodeConfig.valueHint")}
               </p>
             </div>
 
@@ -396,16 +391,16 @@ export function NodeConfigPanel({ node, onChange }: NodeConfigPanelProps) {
             <div className="rounded-md bg-muted/40 p-3 text-xs space-y-2">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="font-medium">TRUE branch:</span>
+                <span className="font-medium">{t("nodeConfig.trueBranch")}:</span>
                 <span className="text-muted-foreground">
-                  Connect from the bottom-left handle (green).
+                  {t("nodeConfig.trueBranchHint")}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-rose-500" />
-                <span className="font-medium">FALSE branch:</span>
+                <span className="font-medium">{t("nodeConfig.falseBranch")}:</span>
                 <span className="text-muted-foreground">
-                  Connect from the bottom-right handle (red).
+                  {t("nodeConfig.falseBranchHint")}
                 </span>
               </div>
             </div>

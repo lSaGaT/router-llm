@@ -43,6 +43,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/provider";
 import type { WorkflowDefinition, WorkflowNodeData, NodeType } from "@/lib/workflow/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ interface HarnessNodeProps {
 }
 
 function HarnessNodeComponent({ data, selected }: HarnessNodeProps) {
+  const { t } = useTranslation();
   const meta = NODE_META[data.nodeType];
   const Icon = meta.icon;
 
@@ -86,10 +88,10 @@ function HarnessNodeComponent({ data, selected }: HarnessNodeProps) {
         <div className="flex-1 min-w-0">
           <div className="text-xs font-semibold truncate">{data.label}</div>
           <div className="text-[10px] opacity-80 truncate">
-            {data.nodeType === "model" && (data.modelId || "(no model)")}
+            {data.nodeType === "model" && (data.modelId || t("canvas.nodes.noModel"))}
             {data.nodeType === "condition" && `${data.conditionField || "?"} ${data.conditionOp || "?"} ${data.conditionValue ?? "?"}`}
-            {data.nodeType === "trigger" && "Start"}
-            {data.nodeType === "end" && "Terminate"}
+            {data.nodeType === "trigger" && t("canvas.nodes.start")}
+            {data.nodeType === "end" && t("canvas.nodes.terminate")}
           </div>
         </div>
       </div>
@@ -99,7 +101,7 @@ function HarnessNodeComponent({ data, selected }: HarnessNodeProps) {
         <>
           <div className="flex justify-between mt-2 px-1">
             <div className="flex flex-col items-center">
-              <span className="text-[9px] font-mono opacity-70">TRUE</span>
+              <span className="text-[9px] font-mono opacity-70">{t("canvas.edges.true")}</span>
               <Handle
                 type="source"
                 position={Position.Bottom}
@@ -109,7 +111,7 @@ function HarnessNodeComponent({ data, selected }: HarnessNodeProps) {
               />
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-[9px] font-mono opacity-70">FALSE</span>
+              <span className="text-[9px] font-mono opacity-70">{t("canvas.edges.false")}</span>
               <Handle
                 type="source"
                 position={Position.Bottom}
@@ -284,11 +286,12 @@ interface PaletteProps {
 }
 
 export function NodePalette({ onAddNode }: PaletteProps) {
+  const { t } = useTranslation();
   const items: { type: NodeType; label: string; desc: string }[] = [
-    { type: "trigger", label: "Trigger", desc: "Entry point" },
-    { type: "model", label: "Model", desc: "Call an LLM" },
-    { type: "condition", label: "Condition", desc: "Branch on variable" },
-    { type: "end", label: "End", desc: "Terminate workflow" },
+    { type: "trigger", label: t("canvas.palette.trigger"), desc: t("canvas.palette.triggerDesc") },
+    { type: "model", label: t("canvas.palette.model"), desc: t("canvas.palette.modelDesc") },
+    { type: "condition", label: t("canvas.palette.condition"), desc: t("canvas.palette.conditionDesc") },
+    { type: "end", label: t("canvas.palette.end"), desc: t("canvas.palette.endDesc") },
   ];
 
   return (
@@ -321,14 +324,22 @@ export function NodePalette({ onAddNode }: PaletteProps) {
 }
 
 // Re-export for the parent component to use when adding nodes
+// The label stored here is a fixed fallback; the visible label in the UI is
+// derived from the nodeType via t() at render time, so users see the
+// localized string regardless of what we store here.
 export function makeNewNode(type: NodeType, position: { x: number; y: number }): Node {
-  const meta = NODE_META[type];
+  const fallbackLabels: Record<NodeType, string> = {
+    trigger: "Trigger",
+    model: "Model",
+    condition: "Condition",
+    end: "End",
+  };
   return {
     id: `${type}-${nanoid(6)}`,
     type: "harnessNode",
     position,
     data: {
-      label: meta.defaultLabel,
+      label: fallbackLabels[type],
       nodeType: type,
       ...(type === "model" ? { temperature: 0.7, maxTokens: 4096 } : {}),
       ...(type === "condition"

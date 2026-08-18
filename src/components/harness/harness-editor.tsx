@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { Loader2, Save, Rocket, ArrowLeft, Copy } from "lucide-react";
 import { nanoid } from "nanoid";
 import type { NodeType, WorkflowDefinition, WorkflowNodeData } from "@/lib/workflow/types";
+import { useTranslation } from "@/lib/i18n/provider";
 
 interface HarnessEditorProps {
   harnessId: string;
@@ -37,6 +38,7 @@ export function HarnessEditor({ harnessId, onBack }: HarnessEditorProps) {
 }
 
 function HarnessEditorInner({ harnessId, onBack }: HarnessEditorProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [graph, setGraph] = useState<WorkflowDefinition>(createDefaultWorkflow());
   const [name, setName] = useState("");
@@ -81,11 +83,11 @@ function HarnessEditorInner({ harnessId, onBack }: HarnessEditorProps) {
         graphJson: JSON.stringify(graph),
       }),
     onSuccess: () => {
-      toast.success("Harness saved");
+      toast.success(t("common.saved"));
       queryClient.invalidateQueries({ queryKey: ["harnesses"] });
       queryClient.invalidateQueries({ queryKey: ["harness", harnessId] });
     },
-    onError: (e: Error) => toast.error(`Save failed: ${e.message}`),
+    onError: (e: Error) => toast.error(`${e.message}`),
   });
 
   const deployMutation = useMutation({
@@ -99,12 +101,12 @@ function HarnessEditorInner({ harnessId, onBack }: HarnessEditorProps) {
       return api.updateHarness(harnessId, { isDeployed: true });
     },
     onSuccess: () => {
-      toast.success("Harness deployed! It will now receive Claude Code requests.");
+      toast.success(t("harnesses.deployedToast"));
       queryClient.invalidateQueries({ queryKey: ["harnesses"] });
       queryClient.invalidateQueries({ queryKey: ["harness", harnessId] });
       queryClient.invalidateQueries({ queryKey: ["settings"] });
     },
-    onError: (e: Error) => toast.error(`Deploy failed: ${e.message}`),
+    onError: (e: Error) => toast.error(`${e.message}`),
   });
 
   const selectedNode = useMemo(
@@ -145,7 +147,7 @@ function HarnessEditorInner({ harnessId, onBack }: HarnessEditorProps) {
     a.download = `${name.replace(/[^a-z0-9]/gi, "-").toLowerCase() || "harness"}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Exported harness as JSON");
+    toast.success(t("harnesses.exportedToast"));
   };
 
   if (isLoading || !harness) {
@@ -161,7 +163,7 @@ function HarnessEditorInner({ harnessId, onBack }: HarnessEditorProps) {
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
         <Button variant="ghost" size="sm" onClick={onBack}>
-          <ArrowLeft className="w-4 h-4" /> Back
+          <ArrowLeft className="w-4 h-4" /> {t("harnesses.back")}
         </Button>
         <Input
           value={name}
@@ -171,12 +173,12 @@ function HarnessEditorInner({ harnessId, onBack }: HarnessEditorProps) {
         {harness.isDeployed && (
           <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-500/40">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
-            Deployed
+            {t("harnesses.deployed")}
           </Badge>
         )}
         <div className="flex-1" />
         <Button variant="outline" size="sm" onClick={handleExport}>
-          <Copy className="w-4 h-4" /> Export
+          <Copy className="w-4 h-4" /> {t("harnesses.export")}
         </Button>
         <Button
           variant="outline"
@@ -189,7 +191,7 @@ function HarnessEditorInner({ harnessId, onBack }: HarnessEditorProps) {
           ) : (
             <Save className="w-4 h-4" />
           )}
-          Save
+          {t("common.save")}
         </Button>
         <Button
           size="sm"
@@ -201,7 +203,7 @@ function HarnessEditorInner({ harnessId, onBack }: HarnessEditorProps) {
           ) : (
             <Rocket className="w-4 h-4" />
           )}
-          Deploy
+          {t("harnesses.deploy")}
         </Button>
       </div>
 
@@ -211,7 +213,7 @@ function HarnessEditorInner({ harnessId, onBack }: HarnessEditorProps) {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={1}
-          placeholder="Briefly describe what this harness does..."
+          placeholder={t("harnesses.descriptionPlaceholder")}
           className="text-sm h-9 min-h-0 resize-none"
         />
       </div>
@@ -262,6 +264,7 @@ interface HarnessListViewProps {
 }
 
 export function HarnessListView({ onOpen }: HarnessListViewProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["harnesses"],
@@ -272,46 +275,45 @@ export function HarnessListView({ onOpen }: HarnessListViewProps) {
     mutationFn: () => {
       const id = `h-${nanoid(6)}`;
       return api.createHarness({
-        name: `New Harness ${new Date().toLocaleTimeString()}`,
+        name: `${t("harnesses.newHarness")} ${new Date().toLocaleTimeString()}`,
         graphJson: JSON.stringify(createDefaultWorkflow()),
       });
     },
     onSuccess: (h: Harness) => {
-      toast.success("New harness created");
+      toast.success(t("harnesses.createdToast"));
       queryClient.invalidateQueries({ queryKey: ["harnesses"] });
       onOpen(h.id);
     },
-    onError: (e: Error) => toast.error(`Create failed: ${e.message}`),
+    onError: (e: Error) => toast.error(`${e.message}`),
   });
 
   const deployMutation = useMutation({
     mutationFn: (id: string) => api.updateHarness(id, { isDeployed: true }),
     onSuccess: () => {
-      toast.success("Deployed");
+      toast.success(t("harnesses.deployedToast"));
       queryClient.invalidateQueries({ queryKey: ["harnesses"] });
       queryClient.invalidateQueries({ queryKey: ["settings"] });
     },
-    onError: (e: Error) => toast.error(`Deploy failed: ${e.message}`),
+    onError: (e: Error) => toast.error(`${e.message}`),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteHarness(id),
     onSuccess: () => {
-      toast.success("Harness deleted");
+      toast.success(t("harnesses.deletedToast"));
       queryClient.invalidateQueries({ queryKey: ["harnesses"] });
       queryClient.invalidateQueries({ queryKey: ["settings"] });
     },
-    onError: (e: Error) => toast.error(`Delete failed: ${e.message}`),
+    onError: (e: Error) => toast.error(`${e.message}`),
   });
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Harnesses</h2>
+          <h2 className="text-lg font-semibold">{t("harnesses.title")}</h2>
           <p className="text-sm text-muted-foreground">
-            Each harness is a visual workflow that orchestrates LLMs. Deploy one to make it
-            receive requests from Claude Code.
+            {t("harnesses.subtitle")}
           </p>
         </div>
         <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
@@ -320,19 +322,19 @@ export function HarnessListView({ onOpen }: HarnessListViewProps) {
           ) : (
             <span className="font-bold text-lg leading-none">+</span>
           )}
-          New Harness
+          {t("harnesses.new")}
         </Button>
       </div>
 
       {isLoading ? (
         <div className="flex items-center gap-2 py-12 justify-center text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" /> Loading harnesses...
+          <Loader2 className="w-4 h-4 animate-spin" /> {t("common.loading")}
         </div>
       ) : !data?.harnesses.length ? (
         <div className="border border-dashed rounded-lg p-12 text-center">
-          <p className="text-muted-foreground">No harnesses yet.</p>
+          <p className="text-muted-foreground">{t("harnesses.noHarnessesYet")}</p>
           <Button className="mt-3" onClick={() => createMutation.mutate()}>
-            Create your first harness
+            {t("harnesses.createFirst")}
           </Button>
         </div>
       ) : (
@@ -349,15 +351,15 @@ export function HarnessListView({ onOpen }: HarnessListViewProps) {
                 <div className="font-semibold flex-1 truncate">{h.name}</div>
                 {h.isDeployed && (
                   <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-500/40 text-[10px]">
-                    DEPLOYED
+                    {t("harnesses.deployed")}
                   </Badge>
                 )}
               </div>
               <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                {h.description || "(no description)"}
+                {h.description || t("common.notSet")}
               </p>
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{h.executionCount} executions</span>
+                <span>{h.executionCount} {t("harnesses.executionCount")}</span>
                 <span>v{h.version}</span>
               </div>
               <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
@@ -368,7 +370,7 @@ export function HarnessListView({ onOpen }: HarnessListViewProps) {
                     onClick={() => deployMutation.mutate(h.id)}
                     disabled={deployMutation.isPending}
                   >
-                    <Rocket className="w-3 h-3" /> Deploy
+                    <Rocket className="w-3 h-3" /> {t("harnesses.deploy")}
                   </Button>
                 )}
                 <Button
@@ -378,7 +380,7 @@ export function HarnessListView({ onOpen }: HarnessListViewProps) {
                   onClick={() => deleteMutation.mutate(h.id)}
                   disabled={deleteMutation.isPending}
                 >
-                  Delete
+                  {t("common.delete")}
                 </Button>
               </div>
             </div>

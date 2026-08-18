@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Loader2, Clock, Coins, Cpu, ListChecks, ArrowLeft, CheckCircle2, XCircle, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/provider";
 
 const STATUS_BADGE: Record<Execution["status"], string> = {
   running: "bg-blue-500/10 text-blue-700 border-blue-500/40",
@@ -47,6 +48,7 @@ export function ExecutionsView() {
 }
 
 function ExecutionsList({ onOpen }: { onOpen: (id: string) => void }) {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ["executions"],
     queryFn: () => api.listExecutions(50, 0),
@@ -55,32 +57,31 @@ function ExecutionsList({ onOpen }: { onOpen: (id: string) => void }) {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold">Executions</h2>
+        <h2 className="text-lg font-semibold">{t("executions.title")}</h2>
         <p className="text-sm text-muted-foreground">
-          Every request Claude Code sends to the gateway creates one execution. Click any
-          row to see the per-node replay.
+          {t("executions.subtitle")}
         </p>
       </div>
 
       {isLoading ? (
         <div className="flex items-center gap-2 py-12 justify-center text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" /> Loading executions...
+          <Loader2 className="w-4 h-4 animate-spin" /> {t("common.loading")}
         </div>
       ) : !data?.executions.length ? (
         <div className="border border-dashed rounded-lg p-12 text-center">
-          <p className="text-muted-foreground">No executions yet.</p>
+          <p className="text-muted-foreground">{t("executions.noExecutions")}</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Deploy a harness and make a request via Claude Code to see executions here.
+            {t("executions.noExecutionsHint")}
           </p>
         </div>
       ) : (
         <div className="border rounded-md overflow-hidden">
           <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-b bg-muted/40">
-            <div>Harness</div>
-            <div>Status</div>
-            <div>Duration</div>
-            <div>Tokens (in/out)</div>
-            <div>Cost</div>
+            <div>{t("executions.columns.harness")}</div>
+            <div>{t("executions.columns.status")}</div>
+            <div>{t("executions.columns.duration")}</div>
+            <div>{t("executions.columns.tokens")}</div>
+            <div>{t("executions.columns.cost")}</div>
           </div>
           <div className="divide-y">
             {data.executions.map((e: Execution) => (
@@ -92,11 +93,11 @@ function ExecutionsList({ onOpen }: { onOpen: (id: string) => void }) {
                 <div className="min-w-0">
                   <div className="font-medium truncate">{e.harnessName}</div>
                   <div className="text-xs text-muted-foreground">
-                    {new Date(e.startedAt).toLocaleString()} · {e.nodeRunCount} nodes
+                    {new Date(e.startedAt).toLocaleString()} · {e.nodeRunCount} {t("executions.nodes").toLowerCase()}
                   </div>
                 </div>
                 <Badge className={cn("border", STATUS_BADGE[e.status])}>
-                  {e.status}
+                  {t(`executions.statuses.${e.status}`)}
                 </Badge>
                 <div className="text-muted-foreground text-xs tabular-nums">
                   {e.durationMs ? formatDuration(e.durationMs) : "—"}
@@ -117,6 +118,7 @@ function ExecutionsList({ onOpen }: { onOpen: (id: string) => void }) {
 }
 
 function ExecutionDetailPanel({ id, onBack }: { id: string; onBack: () => void }) {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ["execution", id],
     queryFn: () => api.getExecution(id),
@@ -137,28 +139,28 @@ function ExecutionDetailPanel({ id, onBack }: { id: string; onBack: () => void }
           onClick={onBack}
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to list
+          <ArrowLeft className="w-4 h-4" /> {t("executions.backToList")}
         </button>
-        <h2 className="text-lg font-semibold">Execution detail</h2>
-        <Badge className={cn("border", STATUS_BADGE[data.status])}>{data.status}</Badge>
+        <h2 className="text-lg font-semibold">{t("executions.detail")}</h2>
+        <Badge className={cn("border", STATUS_BADGE[data.status])}>{t(`executions.statuses.${data.status}`)}</Badge>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard icon={Clock} label="Duration" value={data.durationMs ? formatDuration(data.durationMs) : "—"} />
+        <StatCard icon={Clock} label={t("executions.duration")} value={data.durationMs ? formatDuration(data.durationMs) : "—"} />
         <StatCard
           icon={Cpu}
-          label="Tokens (in/out)"
+          label={t("executions.tokensInOut")}
           value={`${data.totalTokensIn.toLocaleString()} / ${data.totalTokensOut.toLocaleString()}`}
         />
-        <StatCard icon={Coins} label="Cost" value={formatCost(data.totalCostUsd)} />
-        <StatCard icon={ListChecks} label="Nodes" value={data.nodeRuns.length.toString()} />
+        <StatCard icon={Coins} label={t("executions.cost")} value={formatCost(data.totalCostUsd)} />
+        <StatCard icon={ListChecks} label={t("executions.nodes")} value={data.nodeRuns.length.toString()} />
       </div>
 
       {data.errorMessage && (
         <Card className="border-rose-500/40 bg-rose-500/5">
           <CardHeader>
             <CardTitle className="text-sm text-rose-700 flex items-center gap-2">
-              <XCircle className="w-4 h-4" /> Error
+              <XCircle className="w-4 h-4" /> {t("executions.error")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -169,7 +171,7 @@ function ExecutionDetailPanel({ id, onBack }: { id: string; onBack: () => void }
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Node-by-node replay</CardTitle>
+          <CardTitle className="text-sm">{t("executions.replayTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -178,7 +180,7 @@ function ExecutionDetailPanel({ id, onBack }: { id: string; onBack: () => void }
             ))}
             {data.nodeRuns.length === 0 && (
               <div className="text-sm text-muted-foreground text-center py-4">
-                No node runs recorded.
+                {t("executions.noNodeRuns")}
               </div>
             )}
           </div>
@@ -211,6 +213,7 @@ function StatCard({
 }
 
 function NodeRunRow({ run }: { run: NodeRun }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   const statusIcon =
@@ -258,7 +261,7 @@ function NodeRunRow({ run }: { run: NodeRun }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">
-                Input
+                {t("executions.input")}
               </div>
               <pre className="text-xs font-mono bg-muted/40 rounded p-2 max-h-48 overflow-y-auto custom-scrollbar">
                 {JSON.stringify(run.input, null, 2)}
@@ -266,7 +269,7 @@ function NodeRunRow({ run }: { run: NodeRun }) {
             </div>
             <div>
               <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">
-                Output
+                {t("executions.output")}
               </div>
               <pre className="text-xs font-mono bg-muted/40 rounded p-2 max-h-48 overflow-y-auto custom-scrollbar">
                 {JSON.stringify(run.output, null, 2)}

@@ -29,6 +29,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/provider";
 import {
   KeyRound,
   Plus,
@@ -46,6 +47,7 @@ const PROVIDER_LABELS: Record<string, string> = {
 };
 
 export function CredentialsView() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -58,11 +60,11 @@ export function CredentialsView() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteCredential(id),
     onSuccess: () => {
-      toast.success("Credential deleted");
+      toast.success(t("credentials.deletedToast"));
       queryClient.invalidateQueries({ queryKey: ["credentials"] });
       setSelectedId(null);
     },
-    onError: (e: Error) => toast.error(`Failed: ${e.message}`),
+    onError: (e: Error) => toast.error(`${e.message}`),
   });
 
   const selected = data?.credentials.find((c) => c.id === selectedId) || null;
@@ -73,24 +75,26 @@ export function CredentialsView() {
       <div className="flex flex-col gap-3 min-h-0">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Credentials ({data?.credentials.length ?? 0})
+            {t("credentials.title")} ({data?.credentials.length ?? 0})
           </h2>
           <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="w-4 h-4" /> New
+            <Plus className="w-4 h-4" /> {t("common.new")}
           </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
           {isLoading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
-              <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+              <Loader2 className="w-4 h-4 animate-spin" /> {t("common.loading")}
             </div>
           )}
           {!isLoading && data?.credentials.length === 0 && (
             <div className="text-sm text-muted-foreground p-6 text-center border border-dashed rounded-lg">
-              No credentials yet.
+              {t("common.noCredentialsYet")}
               <br />
-              Click <span className="font-medium">New</span> to add your first provider.
+              <button onClick={() => setCreateOpen(true)} className="font-medium underline">
+                {t("common.createFirst")}
+              </button>
             </div>
           )}
           {data?.credentials.map((c) => (
@@ -128,7 +132,7 @@ export function CredentialsView() {
             isDeleting={deleteMutation.isPending}
           />
         ) : (
-          <EmptyState onCreate={() => setCreateOpen(true)} />
+          <EmptyState onCreate={() => setCreateOpen(true)} t={t} />
         )}
       </div>
 
@@ -137,21 +141,25 @@ export function CredentialsView() {
   );
 }
 
-function EmptyState({ onCreate }: { onCreate: () => void }) {
+function EmptyState({
+  onCreate,
+  t,
+}: {
+  onCreate: () => void;
+  t: (k: string, vars?: Record<string, string | number>) => string;
+}) {
   return (
     <div className="h-full flex items-center justify-center">
       <div className="text-center max-w-md">
         <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
           <KeyRound className="w-6 h-6 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-semibold mb-1">No credential selected</h3>
+        <h3 className="text-lg font-semibold mb-1">{t("common.noCredentialSelected")}</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Credentials store the API keys for each LLM provider you want to use (Anthropic,
-          Z.ai, DeepSeek, OpenRouter, Ollama, etc.). Create one credential per provider —
-          then reference it from a Model node inside any harness.
+          {t("credentials.subtitle")}
         </p>
         <Button onClick={onCreate}>
-          <Plus className="w-4 h-4" /> Create your first credential
+          <Plus className="w-4 h-4" /> {t("common.createFirst")}
         </Button>
       </div>
     </div>
@@ -167,6 +175,7 @@ function CredentialDetail({
   onDelete: () => void;
   isDeleting: boolean;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(credential.name);
@@ -182,10 +191,10 @@ function CredentialDetail({
   const discoverMutation = useMutation({
     mutationFn: () => api.discoverModels(credential.id),
     onSuccess: (data) => {
-      toast.success(`Discovered ${data.count} models`);
+      toast.success(t("credentials.discoveredToast", { count: data.count }));
       queryClient.invalidateQueries({ queryKey: ["models", credential.id] });
     },
-    onError: (e: Error) => toast.error(`Discovery failed: ${e.message}`),
+    onError: (e: Error) => toast.error(`${e.message}`),
   });
 
   const saveMutation = useMutation({
@@ -197,7 +206,7 @@ function CredentialDetail({
         notes,
       }),
     onSuccess: () => {
-      toast.success("Credential updated");
+      toast.success(t("credentials.updatedToast"));
       setEditing(false);
       setApiKey("");
       queryClient.invalidateQueries({ queryKey: ["credentials"] });
@@ -223,7 +232,7 @@ function CredentialDetail({
               </CardDescription>
             </div>
             <Button variant="destructive" size="sm" onClick={onDelete} disabled={isDeleting}>
-              <Trash2 className="w-4 h-4" /> Delete
+              <Trash2 className="w-4 h-4" /> {t("common.delete")}
             </Button>
           </div>
         </CardHeader>
@@ -231,12 +240,12 @@ function CredentialDetail({
           {editing ? (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="cred-name">Name</Label>
+                <Label htmlFor="cred-name">{t("credentials.name")}</Label>
                 <Input id="cred-name" value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               {credential.provider !== "anthropic" && (
                 <div className="space-y-2">
-                  <Label htmlFor="cred-baseurl">Base URL</Label>
+                  <Label htmlFor="cred-baseurl">{t("credentials.baseUrl")}</Label>
                   <Input
                     id="cred-baseurl"
                     value={baseUrl}
@@ -247,9 +256,9 @@ function CredentialDetail({
               )}
               <div className="space-y-2">
                 <Label htmlFor="cred-apikey">
-                  New API Key{" "}
+                  {t("credentials.newApiKey")}{" "}
                   <span className="text-xs text-muted-foreground font-normal">
-                    (leave blank to keep current)
+                    {t("credentials.newApiKeyHint")}
                   </span>
                 </Label>
                 <Input
@@ -261,22 +270,22 @@ function CredentialDetail({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cred-notes">Notes</Label>
+                <Label htmlFor="cred-notes">{t("credentials.notes")}</Label>
                 <Textarea
                   id="cred-notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
-                  placeholder="What is this key for?"
+                  placeholder={t("credentials.notesPlaceholder")}
                 />
               </div>
               <div className="flex gap-2">
                 <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
                   {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Save changes
+                  {t("common.save")}
                 </Button>
                 <Button variant="ghost" onClick={() => setEditing(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
               </div>
             </div>
@@ -284,22 +293,22 @@ function CredentialDetail({
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <div className="text-muted-foreground text-xs mb-1">Base URL</div>
-                  <div className="font-mono">{credential.baseUrl || "(default)"}</div>
+                  <div className="text-muted-foreground text-xs mb-1">{t("credentials.baseUrl")}</div>
+                  <div className="font-mono">{credential.baseUrl || t("common.default")}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground text-xs mb-1">Created</div>
+                  <div className="text-muted-foreground text-xs mb-1">{t("common.created")}</div>
                   <div>{new Date(credential.createdAt).toLocaleString()}</div>
                 </div>
               </div>
               {credential.notes && (
                 <div>
-                  <div className="text-muted-foreground text-xs mb-1">Notes</div>
+                  <div className="text-muted-foreground text-xs mb-1">{t("credentials.notes")}</div>
                   <div className="text-sm">{credential.notes}</div>
                 </div>
               )}
               <Button variant="outline" onClick={() => setEditing(true)}>
-                Edit
+                {t("common.edit")}
               </Button>
             </div>
           )}
@@ -312,10 +321,10 @@ function CredentialDetail({
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Cpu className="w-4 h-4" />
-                Available Models
+                {t("credentials.availableModels")}
               </CardTitle>
               <CardDescription>
-                Models discovered from this provider&apos;s /v1/models endpoint.
+                {t("credentials.availableModelsHint")}
               </CardDescription>
             </div>
             <Button
@@ -329,20 +338,20 @@ function CredentialDetail({
               ) : (
                 <RefreshCw className="w-4 h-4" />
               )}
-              Discover
+              {t("common.discover")}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           {modelsLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-              <Loader2 className="w-4 h-4 animate-spin" /> Loading models...
+              <Loader2 className="w-4 h-4 animate-spin" /> {t("common.loading")}
             </div>
           ) : modelsData?.models.length === 0 ? (
             <div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg">
-              No models discovered yet.
+              {t("common.noModels")}
               <br />
-              Click <span className="font-medium">Discover</span> to fetch the available models.
+              {t("common.noModelsHint")}
             </div>
           ) : (
             <div className="space-y-1.5 max-h-80 overflow-y-auto custom-scrollbar">
@@ -373,6 +382,7 @@ function CreateCredentialDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data } = useQuery({ queryKey: ["presets"], queryFn: api.listCredentials });
   const presets = data?.presets || [];
@@ -385,25 +395,16 @@ function CreateCredentialDialog({
   const [autoDiscover, setAutoDiscover] = useState(true);
 
   // Group presets by semantic category for nicer display in the dropdown
-  const CATEGORY_GROUPS: { label: string; match: (p: typeof presets[number]) => boolean }[] = [
-    {
-      label: "Major labs",
-      match: (p) =>
-        ["Anthropic (Claude)", "Z.ai (GLM)", "DeepSeek", "OpenAI", "xAI (Grok)", "MiniMax", "Moonshot (Kimi)", "Mistral", "Google (Gemini)"].includes(p.label),
-    },
-    {
-      label: "Inference platforms",
-      match: (p) =>
-        ["OpenRouter", "Groq", "Together AI", "Perplexity (sonar)", "Cohere (Command)", "Fireworks AI", "Novita AI", "AI21 Labs (Jamba)"].includes(p.label),
-    },
-    {
-      label: "Local / Self-hosted",
-      match: (p) => ["Ollama (local)", "LM Studio (local)", "vLLM / SGLang / Custom"].includes(p.label),
-    },
-  ];
+  // Labels are matched by preset.label (not localized) so the grouping is stable.
+  const MAJOR_LABELS = ["Anthropic (Claude)", "Z.ai (GLM)", "DeepSeek", "OpenAI", "xAI (Grok)", "MiniMax", "Moonshot (Kimi)", "Mistral", "Google (Gemini)"];
+  const INFERENCE_LABELS = ["OpenRouter", "Groq", "Together AI", "Perplexity (sonar)", "Cohere (Command)", "Fireworks AI", "Novita AI", "AI21 Labs (Jamba)"];
+  const LOCAL_LABELS = ["Ollama (local)", "LM Studio (local)", "vLLM / SGLang / Custom"];
+
   function categoryFor(preset: typeof presets[number]): string {
-    for (const cat of CATEGORY_GROUPS) if (cat.match(preset)) return cat.label;
-    return "Other";
+    if (MAJOR_LABELS.includes(preset.label)) return t("credentials.categories.major");
+    if (INFERENCE_LABELS.includes(preset.label)) return t("credentials.categories.inference");
+    if (LOCAL_LABELS.includes(preset.label)) return t("credentials.categories.local");
+    return t("credentials.categories.other");
   }
   const byCategory = presets.reduce<Record<string, typeof presets>>((acc, p) => {
     const c = categoryFor(p);
@@ -411,6 +412,13 @@ function CreateCredentialDialog({
     acc[c].push(p);
     return acc;
   }, {});
+  // Preserve the canonical category order in the dropdown
+  const orderedCategories = [
+    t("credentials.categories.major"),
+    t("credentials.categories.inference"),
+    t("credentials.categories.local"),
+    t("credentials.categories.other"),
+  ].filter((c) => byCategory[c]);
 
   const selectedPreset = presets.find((p) => `${p.key}::${p.label}` === selectedPresetKey);
   const baseUrl = baseUrlOverride ?? selectedPreset?.defaultBaseUrl ?? "";
@@ -430,8 +438,8 @@ function CreateCredentialDialog({
     },
     onSuccess: (data) => {
       const msg = autoDiscover && data.discoveredCount > 0
-        ? `Credential created · ${data.discoveredCount} models discovered`
-        : "Credential created";
+        ? t("credentials.createdToastDiscovered", { count: data.discoveredCount })
+        : t("credentials.createdToast");
       toast.success(msg);
       queryClient.invalidateQueries({ queryKey: ["credentials"] });
       onOpenChange(false);
@@ -442,23 +450,22 @@ function CreateCredentialDialog({
       setSelectedPresetKey("");
       setAutoDiscover(true);
     },
-    onError: (e: Error) => toast.error(`Create failed: ${e.message}`),
+    onError: (e: Error) => toast.error(`${e.message}`),
   });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add Credential</DialogTitle>
+          <DialogTitle>{t("credentials.addTitle")}</DialogTitle>
           <DialogDescription>
-            Pick a provider, enter your API key. Base URL is pre-filled but editable.
-            Models are auto-discovered unless you disable it below.
+            {t("credentials.addDescription")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
           <div className="space-y-2">
-            <Label>Provider</Label>
+            <Label>{t("credentials.provider")}</Label>
             <Select
               value={selectedPresetKey}
               onValueChange={(v) => {
@@ -467,16 +474,16 @@ function CreateCredentialDialog({
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select provider..." />
+                <SelectValue placeholder={t("common.pickProvider")} />
               </SelectTrigger>
               <SelectContent>
-                {CATEGORY_GROUPS.map((cat) => {
-                  const items = byCategory[cat.label] || [];
+                {orderedCategories.map((catLabel) => {
+                  const items = byCategory[catLabel] || [];
                   if (items.length === 0) return null;
                   return (
-                    <div key={cat.label}>
+                    <div key={catLabel}>
                       <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-                        {cat.label}
+                        {catLabel}
                       </div>
                       {items.map((p) => (
                         <SelectItem key={`${p.key}::${p.label}`} value={`${p.key}::${p.label}`}>
@@ -498,14 +505,14 @@ function CreateCredentialDialog({
                 rel="noopener noreferrer"
                 className="text-xs text-primary inline-flex items-center gap-1 hover:underline"
               >
-                Provider docs <ExternalLink className="w-3 h-3" />
+                {t("common.seeDocs")} <ExternalLink className="w-3 h-3" />
               </a>
             )}
             {/* Show known models as a hint even before discovery */}
             {selectedPreset && selectedPreset.knownModels && selectedPreset.knownModels.length > 0 && (
               <div className="rounded-md bg-muted/40 p-2">
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
-                  Known models
+                  {t("credentials.knownModels")}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {selectedPreset.knownModels.map((m) => (
@@ -519,17 +526,17 @@ function CreateCredentialDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="new-name">Display name</Label>
+            <Label htmlFor="new-name">{t("credentials.name")}</Label>
             <Input
               id="new-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={selectedPreset?.label || "My API key"}
+              placeholder={selectedPreset?.label || t("credentials.namePlaceholder")}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="new-apikey">API Key</Label>
+            <Label htmlFor="new-apikey">{t("credentials.apiKey")}</Label>
             <Input
               id="new-apikey"
               type="password"
@@ -541,7 +548,7 @@ function CreateCredentialDialog({
 
           {selectedPreset?.key === "openai_compatible" && (
             <div className="space-y-2">
-              <Label htmlFor="new-baseurl">Base URL</Label>
+              <Label htmlFor="new-baseurl">{t("credentials.baseUrl")}</Label>
               <Input
                 id="new-baseurl"
                 value={baseUrl}
@@ -552,12 +559,13 @@ function CreateCredentialDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="new-notes">Notes (optional)</Label>
+            <Label htmlFor="new-notes">{t("credentials.notes")} ({t("common.optional")})</Label>
             <Textarea
               id="new-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
+              placeholder={t("credentials.notesPlaceholder")}
             />
           </div>
 
@@ -566,12 +574,12 @@ function CreateCredentialDialog({
             <div className="flex items-center justify-between gap-3 rounded-md border p-3">
               <div className="flex-1 min-w-0">
                 <Label htmlFor="auto-discover" className="text-sm font-medium cursor-pointer">
-                  Auto-discover models
+                  {t("credentials.autoDiscover")}
                 </Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {selectedPreset.supportsDiscovery
-                    ? "Fetch the model list via /v1/models right after creating."
-                    : "Use the built-in model list (Anthropic doesn't expose /v1/models)."}
+                    ? t("credentials.autoDiscoverHintDiscoverable")
+                    : t("credentials.autoDiscoverHintBuiltin")}
                 </p>
               </div>
               <Switch
@@ -585,14 +593,14 @@ function CreateCredentialDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             onClick={() => createMutation.mutate()}
             disabled={createMutation.isPending || !apiKey || !selectedPreset}
           >
             {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-            Create credential
+            {t("common.create")}
           </Button>
         </DialogFooter>
       </DialogContent>

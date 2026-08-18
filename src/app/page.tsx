@@ -14,6 +14,8 @@ import { CredentialsView } from "@/components/harness/credentials-view";
 import { HarnessListView, HarnessEditor } from "@/components/harness/harness-editor";
 import { ExecutionsView } from "@/components/harness/executions-view";
 import { SettingsView } from "@/components/harness/settings-view";
+import { LanguageSwitcher } from "@/components/harness/language-switcher";
+import { useTranslation } from "@/lib/i18n/provider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Workflow, KeyRound, History, Settings, Zap } from "lucide-react";
@@ -21,6 +23,7 @@ import { Workflow, KeyRound, History, Settings, Zap } from "lucide-react";
 type TabKey = "harnesses" | "credentials" | "executions" | "settings";
 
 export default function Home() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<TabKey>("harnesses");
   const [editingHarnessId, setEditingHarnessId] = useState<string | null>(null);
 
@@ -41,14 +44,16 @@ export default function Home() {
               <Workflow className="w-4 h-4" />
             </div>
             <div>
-              <h1 className="text-base font-semibold leading-none">LLM Harness</h1>
+              <h1 className="text-base font-semibold leading-none">{t("app.title")}</h1>
               <p className="text-[10px] text-muted-foreground leading-none mt-0.5">
-                Visual workflow builder for coding agents
+                {t("app.subtitle")}
               </p>
             </div>
           </div>
 
           <div className="flex-1" />
+
+          <LanguageSwitcher />
 
           {/* Gateway status pill */}
           {settings && (
@@ -65,7 +70,7 @@ export default function Home() {
                   settings.hasDeployedHarness ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
                 }`}
               />
-              {settings.hasDeployedHarness ? "Gateway live" : "No harness deployed"}
+              {settings.hasDeployedHarness ? t("app.deployed") : t("app.notDeployed")}
             </Badge>
           )}
         </div>
@@ -76,11 +81,11 @@ export default function Home() {
         <div className="bg-amber-500/10 border-b border-amber-500/30 px-6 py-2 text-sm text-amber-800 dark:text-amber-300 flex items-center gap-2">
           <Zap className="w-3.5 h-3.5" />
           <span>
-            Tip: deploy a harness and point Claude Code at this gateway. See the{" "}
+            {t("app.bannerTip")}{" "}
             <button onClick={() => setTab("settings")} className="underline font-medium">
-              Settings tab
-            </button>{" "}
-            for setup instructions.
+              {t("app.bannerTipLink")}
+            </button>
+            .
           </span>
         </div>
       )}
@@ -90,16 +95,16 @@ export default function Home() {
         <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)}>
           <TabsList className="grid grid-cols-4 w-full max-w-md mb-4">
             <TabsTrigger value="harnesses" className="gap-1.5">
-              <Workflow className="w-3.5 h-3.5" /> Harnesses
+              <Workflow className="w-3.5 h-3.5" /> {t("nav.harnesses")}
             </TabsTrigger>
             <TabsTrigger value="credentials" className="gap-1.5">
-              <KeyRound className="w-3.5 h-3.5" /> Credentials
+              <KeyRound className="w-3.5 h-3.5" /> {t("nav.credentials")}
             </TabsTrigger>
             <TabsTrigger value="executions" className="gap-1.5">
-              <History className="w-3.5 h-3.5" /> Executions
+              <History className="w-3.5 h-3.5" /> {t("nav.executions")}
             </TabsTrigger>
             <TabsTrigger value="settings" className="gap-1.5">
-              <Settings className="w-3.5 h-3.5" /> Settings
+              <Settings className="w-3.5 h-3.5" /> {t("nav.settings")}
             </TabsTrigger>
           </TabsList>
 
@@ -131,17 +136,17 @@ export default function Home() {
       <footer className="border-t bg-card mt-auto">
         <div className="max-w-[1600px] mx-auto px-6 py-2 text-xs text-muted-foreground flex items-center justify-between">
           <span>
-            LLM Harness · Self-hosted ·{" "}
+            {t("app.footer")}
             <a
               href="https://github.com"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-foreground underline"
             >
-              Open source
+              {t("app.openSource")}
             </a>
           </span>
-          <span>Single-tenant · Local-first</span>
+          <span>{t("app.footerTag")}</span>
         </div>
       </footer>
     </div>
