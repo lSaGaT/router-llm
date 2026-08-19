@@ -309,10 +309,9 @@ export function openAiSseToAnthropicStream(opts: SseTranslateOptions): {
       out += writer.take();
       if (out.length > 0) controller.enqueue(encoder.encode(out));
     },
-    cancel() {
-      // Client aborted — nothing more to produce; usage object already holds
-      // whatever was seen (proxy finalizes with status "cancelled").
-    },
+    // Client abort: readable cancel propagates through the TransformStream
+    // to the upstream body — the proxy finalizes with status "cancelled"
+    // via its own req.signal listener.
   });
 
   return { stream, usage };

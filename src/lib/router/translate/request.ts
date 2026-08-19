@@ -190,20 +190,22 @@ function convertUserMessage(
   const rest: AnthropicContentBlock[] = [];
 
   for (const b of blocks) {
-    if (typeof b === "object" && b !== null && b.type === "tool_result") {
+    const blk = b as unknown as Record<string, unknown>;
+    if (typeof b === "object" && b !== null && blk.type === "tool_result") {
+      const toolUseId = typeof blk.tool_use_id === "string" ? blk.tool_use_id : "";
       // OpenAI 400s on a tool message with no preceding tool_call — orphan
       // results degrade to plain user text so the request stays valid.
-      if (b.tool_use_id && toolUseIds.has(b.tool_use_id)) {
+      if (toolUseId && toolUseIds.has(toolUseId)) {
         toolResults.push({
           role: "tool",
-          content: toolResultContentToString(b.content),
-          tool_call_id: b.tool_use_id,
+          content: toolResultContentToString(blk.content),
+          tool_call_id: toolUseId,
         });
       } else {
-        issues.push({ severity: "warn", detail: `orphan tool_result ${b.tool_use_id ?? "?"} inlined as user text` });
+        issues.push({ severity: "warn", detail: `orphan tool_result ${toolUseId || "?"} inlined as user text` });
         rest.push({
           type: "text",
-          text: `<tool_result tool_use_id="${b.tool_use_id ?? ""}">${toolResultContentToString(b.content)}</tool_result>`,
+          text: `<tool_result tool_use_id="${toolUseId}">${toolResultContentToString(blk.content)}</tool_result>`,
         });
       }
     } else {
@@ -230,17 +232,18 @@ function convertAssistantMessage(
 
   for (const b of blocks) {
     if (typeof b !== "object" || b === null) continue;
-    switch (b.type) {
+    const blk = b as unknown as Record<string, unknown>;
+    switch (blk.type) {
       case "text":
-        if (typeof b.text === "string" && b.text.length > 0) textParts.push(b.text);
+        if (typeof blk.text === "string" && blk.text.length > 0) textParts.push(blk.text);
         break;
       case "tool_use":
-        if (typeof b.id === "string" && typeof b.name === "string") {
-          toolUseIds.add(b.id);
+        if (typeof blk.id === "string" && typeof blk.name === "string") {
+          toolUseIds.add(blk.id);
           toolCalls.push({
-            id: b.id,
+            id: blk.id,
             type: "function",
-            function: { name: b.name, arguments: JSON.stringify(b.input ?? {}) },
+            function: { name: blk.name, arguments: JSON.stringify(blk.input ?? {}) },
           });
         }
         break;
@@ -252,10 +255,10 @@ function convertAssistantMessage(
         break;
       default:
         // Unknown block type — string-ify defensively so content is not lost
-        if (typeof (b as { text?: unknown }).text === "string") {
-          textParts.push((b as { text: string }).text);
+        if (typeof blk.text === "string" && blk.text.length > 0) {
+          textParts.push(blk.text);
         } else {
-          issues.push({ severity: "warn", detail: `unknown assistant block "${String(b.type)}" dropped` });
+          issues.push({ severity: "warn", detail: `unknown assistant block "${String(blk.type)}" dropped` });
         }
     }
   }
@@ -282,16 +285,17 @@ function blocksToContent(
 
   for (const b of blocks) {
     if (typeof b !== "object" || b === null) continue;
-    switch (b.type) {
+    const blk = b as unknown as Record<string, unknown>;
+    switch (blk.type) {
       case "text":
-        if (typeof b.text === "string" && b.text.length > 0) textParts.push(b.text);
+        if (typeof blk.text === "string" && blk.text.length > 0) textParts.push(blk.text);
         break;
       case "image": {
-        const src = b.source;
+        const src = blk.source as { type?: string; data?: unknown; url?: unknown; media_type?: unknown } | undefined;
         if (src?.type === "base64" && typeof src.data === "string") {
           imageParts.push({
             type: "image_url",
-            image_url: { url: `data:${src.media_type ?? "image/png"};base64,${src.data}` },
+            image_url: { url: `data:${typeof src.media_type === "string" ? src.media_type : "image/png"};base64,${src.data}` },
           });
         } else if (src?.type === "url" && typeof src.url === "string") {
           imageParts.push({ type: "image_url", image_url: { url: src.url } });
@@ -302,7 +306,7 @@ function blocksToContent(
         break;
       }
       default:
-        issues.push({ severity: "warn", detail: `unknown user block "${String(b.type)}" dropped` });
+        issues.push({ severity: "warn", detail: `unknown user block "${String(blk.type)}" dropped` });
     }
   }
 
