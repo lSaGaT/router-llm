@@ -17,6 +17,10 @@ model Credential {
   name        String
   provider    String   // canonical key: "anthropic" | "openai_compatible"
   providerLabel String? // human-readable preset label, e.g. "Z.ai (GLM)" | "xAI (Grok)"
+  /// Wire protocol for the upstream call (routing dispatch).
+  /// "anthropic" = native Anthropic Messages API; "openai_compat" = OpenAI Chat Completions.
+  /// Nullable for zero-downtime migration — resolved via credentialProtocol().
+  protocol    String?
   baseUrl     String?
   // Encrypted blob containing apiKey, organization, headers, etc.
   // JSON: { apiKey, organization?, headers? } encrypted via AES-256-GCM.
