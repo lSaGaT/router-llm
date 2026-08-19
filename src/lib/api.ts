@@ -7,6 +7,8 @@ export interface Credential {
   name: string;
   provider: string;
   providerLabel?: string;
+  /** Wire protocol of the upstream ("anthropic" | "openai_compat"). */
+  protocol?: string;
   baseUrl: string | null;
   apiKeyMasked: string;
   notes?: string;
@@ -24,6 +26,7 @@ export interface ProviderPreset {
   docsUrl: string;
   supportsDiscovery: boolean;
   knownModels?: string[];
+  protocol?: string;
 }
 
 export interface ProviderModel {

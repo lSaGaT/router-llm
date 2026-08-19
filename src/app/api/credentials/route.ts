@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { encryptCredentialPayload } from "@/lib/crypto";
-import { PROVIDER_PRESETS, getAdapterForCredential } from "@/lib/adapters/registry";
+import { PROVIDER_PRESETS, getAdapterForCredential, presetProtocol } from "@/lib/adapters/registry";
 import type { CredentialPayload } from "@/lib/adapters/types";
 
 export const runtime = "nodejs";
@@ -44,17 +44,20 @@ export async function GET() {
     include: { _count: { select: { models: true } } },
   });
 
-  // Backfill providerLabel for legacy credentials that were created before
-  // this column existed. We resolve from the preset by baseUrl match.
+  // Backfill providerLabel + protocol for legacy credentials that were
+  // created before these columns existed (resolved from the preset).
   for (const c of creds) {
+    const patch: { providerLabel?: string; protocol?: string } = {};
     if (!c.providerLabel) {
       const preset = findPresetForCredential(c);
-      if (preset) {
-        await db.credential.update({
-          where: { id: c.id },
-          data: { providerLabel: preset.label },
-        });
-      }
+      if (preset) patch.providerLabel = preset.label;
+    }
+    if (!c.protocol) {
+      const preset = findPresetForCredential(c);
+      if (preset) patch.protocol = presetProtocol(preset);
+    }
+    if (Object.keys(patch).length > 0) {
+      await db.credential.update({ where: { id: c.id }, data: patch }).catch(() => undefined);
     }
   }
 
@@ -72,6 +75,7 @@ export async function GET() {
         name: c.name,
         provider: c.provider,
         providerLabel: c.providerLabel || preset?.label || c.provider,
+        protocol: c.protocol || (preset ? presetProtocol(preset) : c.provider),
         baseUrl: c.baseUrl,
         apiKeyMasked: "••••••••••••",
         notes: c.notes,
@@ -144,6 +148,7 @@ export async function POST(req: NextRequest) {
       name,
       provider: preset.key,
       providerLabel: preset.label,
+      protocol: presetProtocol(preset),
       baseUrl: baseUrl || preset.defaultBaseUrl || null,
       encryptedSecret: enc.encryptedSecret,
       ivAuth: enc.ivAuth,

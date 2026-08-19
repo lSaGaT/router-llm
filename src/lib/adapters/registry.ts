@@ -54,6 +54,14 @@ export interface ProviderPreset {
   docsUrl: string;
   supportsDiscovery: boolean; // has /v1/models endpoint
   knownModels?: string[]; // hints for the UI
+  /** Wire protocol for the router dispatch. Defaults by key (see presetProtocol). */
+  protocol?: "anthropic" | "openai_compat";
+}
+
+/** Resolve the wire protocol of a preset — explicit value wins, else by key. */
+export function presetProtocol(preset: ProviderPreset): "anthropic" | "openai_compat" {
+  if (preset.protocol === "anthropic" || preset.protocol === "openai_compat") return preset.protocol;
+  return preset.key === "anthropic" ? "anthropic" : "openai_compat";
 }
 
 export const PROVIDER_PRESETS: ProviderPreset[] = [
@@ -246,6 +254,38 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
       "gemini-2.0-flash-lite",
       "gemini-1.5-pro",
       "gemini-1.5-flash",
+    ],
+  },
+
+  // ─── Google (Gemini) — Anthropic-protocol endpoint (experimental) ───
+  {
+    key: "anthropic",
+    label: "Google (Gemini) — Anthropic API (experimental)",
+    description:
+      "Gemini via Google's Anthropic-compatible endpoint. Passes through the router without translation (no tool-stream translation layer); compare with the OpenAI-compatible preset above.",
+    defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta/anthropic",
+    docsUrl: "https://ai.google.dev/gemini-api/docs/anthropic-api",
+    supportsDiscovery: false,
+    knownModels: [
+      "gemini-2.5-pro",
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-2.0-flash",
+    ],
+  },
+
+  // ─── DeepSeek — Anthropic-protocol endpoint (experimental) ───
+  {
+    key: "anthropic",
+    label: "DeepSeek — Anthropic API (experimental)",
+    description:
+      "DeepSeek's Anthropic-native endpoint. Passes through the router without translation.",
+    defaultBaseUrl: "https://api.deepseek.com/anthropic",
+    docsUrl: "https://api-docs.deepseek.com/guides/anthropic_api",
+    supportsDiscovery: false,
+    knownModels: [
+      "deepseek-chat",
+      "deepseek-reasoner",
     ],
   },
 
