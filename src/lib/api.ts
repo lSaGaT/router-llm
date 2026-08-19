@@ -13,6 +13,8 @@ export interface Credential {
   apiKeyMasked: string;
   notes?: string;
   knownModels?: string[];
+  /** Discovered model ids for this credential (sorted). */
+  models?: string[];
   discoveredModelCount?: number;
   createdAt: string;
   updatedAt: string;

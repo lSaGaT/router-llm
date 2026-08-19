@@ -41,7 +41,7 @@ function findPresetForCredential(c: { provider: string; providerLabel: string | 
 export async function GET() {
   const creds = await db.credential.findMany({
     orderBy: { createdAt: "desc" },
-    include: { _count: { select: { models: true } } },
+    include: { models: { select: { modelId: true }, orderBy: { modelId: "asc" } } },
   });
 
   // Backfill providerLabel + protocol for legacy credentials that were
@@ -64,7 +64,7 @@ export async function GET() {
   // Re-fetch with the backfilled labels
   const finalCreds = await db.credential.findMany({
     orderBy: { createdAt: "desc" },
-    include: { _count: { select: { models: true } } },
+    include: { models: { select: { modelId: true }, orderBy: { modelId: "asc" } } },
   });
 
   return NextResponse.json({
@@ -80,7 +80,8 @@ export async function GET() {
         apiKeyMasked: "••••••••••••",
         notes: c.notes,
         knownModels: preset?.knownModels || [],
-        discoveredModelCount: c._count.models,
+        discoveredModelCount: c.models.length,
+        models: c.models.map((m) => m.modelId),
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
       };

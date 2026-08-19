@@ -302,21 +302,36 @@ export function RouterView() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor={`model-${key}`}>{t("router.model")}</Label>
-                  <Input
-                    id={`model-${key}`}
-                    list={`models-${key}`}
-                    className="font-mono"
-                    value={route.modelId ?? ""}
-                    placeholder={t("router.modelPlaceholder")}
-                    onChange={(e) => setRoute(key, { modelId: e.target.value || null })}
-                  />
-                  <datalist id={`models-${key}`}>
-                    {(credentials.find((c) => c.id === route.credentialId)?.knownModels ?? []).map(
-                      (m) => (
-                        <option key={m} value={m} />
-                      ),
-                    )}
-                  </datalist>
+                  {(() => {
+                    const cred = credentials.find((c) => c.id === route.credentialId);
+                    // Discovered models first, then preset-known ones not yet discovered
+                    const discovered = cred?.models ?? [];
+                    const knownOnly = (cred?.knownModels ?? []).filter((m) => !discovered.includes(m));
+                    // Keep a manually-entered value (e.g. "glm-5.3[1m]") selectable
+                    const current = route.modelId && !discovered.includes(route.modelId) && !knownOnly.includes(route.modelId)
+                      ? [route.modelId]
+                      : [];
+                    const options = [...current, ...discovered, ...knownOnly];
+                    return (
+                      <Select
+                        value={route.modelId ?? "none"}
+                        onValueChange={(v) => setRoute(key, { modelId: v === "none" ? null : v })}
+                        disabled={!cred}
+                      >
+                        <SelectTrigger id={`model-${key}`} className="w-full font-mono">
+                          <SelectValue placeholder={t("router.modelPlaceholder")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">{t("router.credentialNone")}</SelectItem>
+                          {options.map((m) => (
+                            <SelectItem key={m} value={m} className="font-mono">
+                              {m}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
