@@ -210,6 +210,7 @@ export async function POST(req: NextRequest) {
     id: credential.id,
     name: credential.name,
     provider: credential.provider,
+    protocol: presetProtocol(preset),
     baseUrl: credential.baseUrl,
     apiKeyMasked: maskApiKey(apiKey),
     discoveredCount,
