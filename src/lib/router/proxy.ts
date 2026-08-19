@@ -17,8 +17,12 @@ import { decryptCredentialPayload } from "@/lib/crypto";
 import { getOrCreateRouterConfig } from "./config";
 import { detectPhase, extractSignals } from "./detect";
 import type { PhaseKey, RouteTarget } from "./types";
+import { credentialProtocol, PROTOCOL_DEFAULT_BASE, type WireProtocol } from "./protocol";
+import { anthropicToOpenAiBody } from "./translate/request";
+import { openAiToAnthropicError, openAiToAnthropicResponse } from "./translate/response";
+import { openAiSseToAnthropicStream } from "./translate/sse";
+import type { AnthropicRequestBody, TranslationIssue } from "./translate/types";
 
-const DEFAULT_UPSTREAM_BASE = "https://api.z.ai/api/anthropic";
 const UPSTREAM_TIMEOUT_MS =
   Number(process.env.ROUTER_UPSTREAM_TIMEOUT_MS) || 600_000; // 10 min default
 
@@ -52,6 +56,26 @@ function buildUpstreamHeaders(req: NextRequest, apiKey: string): Headers {
   if (beta) h.set("anthropic-beta", beta);
   const org = req.headers.get("anthropic-organization");
   if (org) h.set("anthropic-organization", org);
+  return h;
+}
+
+/** Headers for OpenAI-compatible upstreams: Bearer auth + credential custom headers. */
+function buildOpenAiHeaders(
+  apiKey: string,
+  customHeaders?: Record<string, string>,
+): Headers {
+  const h = new Headers();
+  h.set("content-type", "application/json");
+  h.set("authorization", `Bearer ${apiKey}`);
+  if (customHeaders) {
+    for (const [k, v] of Object.entries(customHeaders)) {
+      try {
+        h.set(k, v);
+      } catch {
+        // invalid header name — skip
+      }
+    }
+  }
   return h;
 }
 
@@ -256,12 +280,14 @@ export async function proxyMessagesRequest(opts: ProxyOptions): Promise<Response
     return anthropicError(503, `Phase router: credential ${target.credentialId} not found.`);
   }
   let apiKey: string;
+  let credentialHeaders: Record<string, string> | undefined;
   try {
-    const payload = decryptCredentialPayload<{ apiKey?: string }>(
-      credential.ivAuth,
-      credential.encryptedSecret,
-    );
+    const payload = decryptCredentialPayload<{
+      apiKey?: string;
+      headers?: Record<string, string>;
+    }>(credential.ivAuth, credential.encryptedSecret);
     apiKey = payload.apiKey ?? "";
+    credentialHeaders = payload.headers;
   } catch {
     return anthropicError(500, "Phase router: failed to decrypt credential (HARNESS_ENCRYPTION_KEY changed?).");
   }
@@ -285,9 +311,27 @@ export async function proxyMessagesRequest(opts: ProxyOptions): Promise<Response
     };
   }
 
-  const base = (credential.baseUrl || DEFAULT_UPSTREAM_BASE).replace(/\/+$/, "");
-  const url = `${base}/v1/messages`;
-  const headers = buildUpstreamHeaders(req, apiKey);
+  // 4.5 Protocol dispatch: anthropic passes through; openai_compat is translated
+  const protocol: WireProtocol = credentialProtocol(credential);
+  const base = (credential.baseUrl || PROTOCOL_DEFAULT_BASE[protocol]).replace(/\/+$/, "");
+
+  let url: string;
+  let headers: Headers;
+  let outBodyText: string;
+  let translationIssues: TranslationIssue[] = [];
+
+  if (protocol === "openai_compat") {
+    const { out, issues } = anthropicToOpenAiBody(outBody as AnthropicRequestBody);
+    translationIssues = issues;
+    url = `${base}/chat/completions`;
+    headers = buildOpenAiHeaders(apiKey, credentialHeaders);
+    outBodyText = JSON.stringify(out);
+  } else {
+    url = `${base}/v1/messages`;
+    headers = buildUpstreamHeaders(req, apiKey);
+    outBodyText = JSON.stringify(outBody);
+  }
+
   const signal = combineSignals(req.signal, UPSTREAM_TIMEOUT_MS);
 
   // 5. Execution row (before fetch)
@@ -295,6 +339,14 @@ export async function proxyMessagesRequest(opts: ProxyOptions): Promise<Response
   let executionId: string | null = null;
   if (logExecution) {
     try {
+      const summary = summarizeRequest(bodyJson, rawBodyText.length);
+      const requestJson =
+        translationIssues.length > 0
+          ? JSON.stringify({
+              ...(JSON.parse(summary) as Record<string, unknown>),
+              translationIssues,
+            })
+          : summary;
       const created = await db.execution.create({
         data: {
           status: "running",
@@ -303,7 +355,7 @@ export async function proxyMessagesRequest(opts: ProxyOptions): Promise<Response
           requestedModel,
           routedModel: target.modelId,
           routedCredentialId: target.credentialId,
-          requestJson: summarizeRequest(bodyJson, rawBodyText.length),
+          requestJson,
         },
       });
       executionId = created.id;
@@ -351,11 +403,32 @@ export async function proxyMessagesRequest(opts: ProxyOptions): Promise<Response
     res = await fetch(url, {
       method: "POST",
       headers,
-      body: JSON.stringify(outBody),
+      body: outBodyText,
       signal,
       cache: "no-store",
       redirect: "manual",
     });
+    // Some providers 400 on stream_options — the error arrives before any
+    // byte reaches the client, so a single retry without it is safe.
+    if (
+      protocol === "openai_compat" &&
+      res.status === 400 &&
+      outBodyText.includes("stream_options")
+    ) {
+      const errText = await res.clone().text().catch(() => "");
+      if (errText.includes("stream_options")) {
+        const bodyObj = JSON.parse(outBodyText) as Record<string, unknown>;
+        delete bodyObj.stream_options;
+        res = await fetch(url, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(bodyObj),
+          signal,
+          cache: "no-store",
+          redirect: "manual",
+        });
+      }
+    }
   } catch (err) {
     const aborted = req.signal.aborted;
     await finalize(
@@ -367,10 +440,16 @@ export async function proxyMessagesRequest(opts: ProxyOptions): Promise<Response
     return anthropicError(502, `Upstream fetch failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 
-  // 7. Upstream error → pass status + body through verbatim
+  // 7. Upstream error → anthropic: verbatim; openai_compat: translated shape
   if (!res.ok) {
     const errText = (await res.text()).slice(0, 64 * 1024);
     await finalize("failed", null, `upstream ${res.status}: ${errText.slice(0, 400)}`);
+    if (protocol === "openai_compat") {
+      return new Response(openAiToAnthropicError(res.status, errText, res.statusText), {
+        status: res.status,
+        headers: { "content-type": "application/json" },
+      });
+    }
     return new Response(errText, {
       status: res.status,
       headers: { "content-type": res.headers.get("content-type") || "application/json" },
@@ -381,7 +460,16 @@ export async function proxyMessagesRequest(opts: ProxyOptions): Promise<Response
 
   // 8. Non-streaming: read, extract usage, return text verbatim
   if (!wantsStream || !res.body) {
-    const text = await res.text();
+    let text = await res.text();
+    if (protocol === "openai_compat") {
+      // Synthesize Anthropic JSON so the usage extraction below (and the
+      // client) see the native shape.
+      try {
+        text = JSON.stringify(openAiToAnthropicResponse(JSON.parse(text), target.modelId));
+      } catch {
+        // non-JSON upstream body — pass through as-is
+      }
+    }
     const scanner = new SseUsageScanner();
     try {
       const parsed = JSON.parse(text);
@@ -449,12 +537,22 @@ export async function proxyMessagesRequest(opts: ProxyOptions): Promise<Response
     },
   };
 
-  const transformed = res.body.pipeThrough(new TransformStream(transformer));
+  // OpenAI-compat streams are translated first; the scanner then reads the
+  // synthesized Anthropic events exactly like a native upstream.
+  let upstream: ReadableStream<Uint8Array> = res.body;
+  if (protocol === "openai_compat") {
+    upstream = res.body.pipeThrough(openAiSseToAnthropicStream({ fallbackModel: target.modelId }).stream);
+  }
+
+  const transformed = upstream.pipeThrough(new TransformStream(transformer));
 
   return new Response(transformed, {
     status: res.status,
     headers: {
-      "content-type": res.headers.get("content-type") || "text/event-stream",
+      "content-type":
+        protocol === "openai_compat"
+          ? "text/event-stream"
+          : res.headers.get("content-type") || "text/event-stream",
       "cache-control": "no-cache, no-transform",
       "x-accel-buffering": "no",
     },
