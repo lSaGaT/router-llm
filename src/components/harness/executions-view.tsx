@@ -1,19 +1,18 @@
 "use client";
 
 /**
- * ExecutionsView — list of executions + detail/replay.
+ * ExecutionsView — history of routed requests.
  *
- * Replay: clicking an execution opens a detail panel where we show the
- * graph plus a per-node log (input, output, tokens, cost, latency, model).
+ * One row per gateway request: detected phase, matched rule, requested →
+ * routed model, status, tokens, cost. Detail shows the truncated request /
+ * response summaries the proxy stored.
  */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api, type Execution, type ExecutionDetail, type NodeRun } from "@/lib/api";
+import { api, type Execution, type ExecutionDetail, type PhaseKeyT } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { Loader2, Clock, Coins, Cpu, ListChecks, ArrowLeft, CheckCircle2, XCircle, Play } from "lucide-react";
+import { Loader2, Clock, Coins, Cpu, ArrowLeft, XCircle, ArrowRight, Route as RouteIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/provider";
 
@@ -22,6 +21,13 @@ const STATUS_BADGE: Record<Execution["status"], string> = {
   completed: "bg-emerald-500/10 text-emerald-700 border-emerald-500/40",
   failed: "bg-rose-500/10 text-rose-700 border-rose-500/40",
   cancelled: "bg-zinc-500/10 text-zinc-700 border-zinc-500/40",
+};
+
+const PHASE_BADGE: Record<string, string> = {
+  PLAN: "bg-violet-500/10 text-violet-700 border-violet-500/40",
+  EXECUTE: "bg-emerald-500/10 text-emerald-700 border-emerald-500/40",
+  REVIEW: "bg-sky-500/10 text-sky-700 border-sky-500/40",
+  UTILITY: "bg-amber-500/10 text-amber-700 border-amber-500/40",
 };
 
 function formatDuration(ms: number): string {
@@ -36,6 +42,16 @@ function formatCost(usd: number): string {
   if (usd === 0) return "—";
   if (usd < 0.01) return `$${usd.toFixed(4)}`;
   return `$${usd.toFixed(2)}`;
+}
+
+function PhaseBadge({ phase }: { phase: PhaseKeyT | null }) {
+  const { t } = useTranslation();
+  if (!phase) return <span className="text-xs text-muted-foreground">—</span>;
+  return (
+    <Badge className={cn("border", PHASE_BADGE[phase] ?? "")}>
+      {t(`router.phases.${phase}`)}
+    </Badge>
+  );
 }
 
 export function ExecutionsView() {
@@ -76,8 +92,9 @@ function ExecutionsList({ onOpen }: { onOpen: (id: string) => void }) {
         </div>
       ) : (
         <div className="border rounded-md overflow-hidden">
-          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-b bg-muted/40">
-            <div>{t("executions.columns.harness")}</div>
+          <div className="grid grid-cols-[1fr_1.2fr_auto_auto_auto_auto] gap-3 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-b bg-muted/40">
+            <div>{t("executions.columns.phase")}</div>
+            <div>{t("executions.columns.model")}</div>
             <div>{t("executions.columns.status")}</div>
             <div>{t("executions.columns.duration")}</div>
             <div>{t("executions.columns.tokens")}</div>
@@ -88,13 +105,20 @@ function ExecutionsList({ onOpen }: { onOpen: (id: string) => void }) {
               <button
                 key={e.id}
                 onClick={() => onOpen(e.id)}
-                className="w-full text-left grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-4 py-2.5 text-sm hover:bg-muted/30 transition-colors items-center"
+                className="w-full text-left grid grid-cols-[1fr_1.2fr_auto_auto_auto_auto] gap-3 px-4 py-2.5 text-sm hover:bg-muted/30 transition-colors items-center"
               >
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{e.harnessName}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(e.startedAt).toLocaleString()} · {e.nodeRunCount} {t("executions.nodes").toLowerCase()}
+                  <PhaseBadge phase={e.phase} />
+                  <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                    {e.matchedRule
+                      ? `${e.matchedRule} · ${new Date(e.startedAt).toLocaleString()}`
+                      : new Date(e.startedAt).toLocaleString()}
                   </div>
+                </div>
+                <div className="min-w-0 text-xs font-mono text-muted-foreground flex items-center gap-1.5">
+                  <span className="truncate">{e.requestedModel || "—"}</span>
+                  <ArrowRight className="w-3 h-3 shrink-0" />
+                  <span className="truncate text-foreground">{e.routedModel || "—"}</span>
                 </div>
                 <Badge className={cn("border", STATUS_BADGE[e.status])}>
                   {t(`executions.statuses.${e.status}`)}
@@ -142,18 +166,23 @@ function ExecutionDetailPanel({ id, onBack }: { id: string; onBack: () => void }
           <ArrowLeft className="w-4 h-4" /> {t("executions.backToList")}
         </button>
         <h2 className="text-lg font-semibold">{t("executions.detail")}</h2>
+        <PhaseBadge phase={data.phase} />
         <Badge className={cn("border", STATUS_BADGE[data.status])}>{t(`executions.statuses.${data.status}`)}</Badge>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard icon={Clock} label={t("executions.duration")} value={data.durationMs ? formatDuration(data.durationMs) : "—"} />
+        <StatCard icon={RouteIcon} label={t("executions.matchedRule")} value={data.matchedRule || "fallback"} />
+        <StatCard
+          icon={Cpu}
+          label={t("executions.routedModel")}
+          value={data.routedModel || "—"}
+        />
         <StatCard
           icon={Cpu}
           label={t("executions.tokensInOut")}
           value={`${data.totalTokensIn.toLocaleString()} / ${data.totalTokensOut.toLocaleString()}`}
         />
         <StatCard icon={Coins} label={t("executions.cost")} value={formatCost(data.totalCostUsd)} />
-        <StatCard icon={ListChecks} label={t("executions.nodes")} value={data.nodeRuns.length.toString()} />
       </div>
 
       {data.errorMessage && (
@@ -169,23 +198,30 @@ function ExecutionDetailPanel({ id, onBack }: { id: string; onBack: () => void }
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">{t("executions.replayTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {data.nodeRuns.map((nr: NodeRun) => (
-              <NodeRunRow key={nr.id} run={nr} />
-            ))}
-            {data.nodeRuns.length === 0 && (
-              <div className="text-sm text-muted-foreground text-center py-4">
-                {t("executions.noNodeRuns")}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5" /> {t("executions.requestSummary")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="text-xs font-mono bg-muted/40 rounded p-2 max-h-96 overflow-auto custom-scrollbar whitespace-pre-wrap">
+              {JSON.stringify(data.request, null, 2)}
+            </pre>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">{t("executions.responseSummary")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="text-xs font-mono bg-muted/40 rounded p-2 max-h-96 overflow-auto custom-scrollbar whitespace-pre-wrap">
+              {data.response ? JSON.stringify(data.response, null, 2) : "—"}
+            </pre>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -206,78 +242,8 @@ function StatCard({
           <Icon className="w-3.5 h-3.5" />
           {label}
         </div>
-        <div className="text-lg font-semibold tabular-nums">{value}</div>
+        <div className="text-sm font-semibold tabular-nums truncate font-mono">{value}</div>
       </CardContent>
     </Card>
-  );
-}
-
-function NodeRunRow({ run }: { run: NodeRun }) {
-  const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
-
-  const statusIcon =
-    run.status === "completed" ? (
-      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-    ) : run.status === "failed" ? (
-      <XCircle className="w-3.5 h-3.5 text-rose-500" />
-    ) : (
-      <Play className="w-3.5 h-3.5 text-blue-500" />
-    );
-
-  return (
-    <div className="border rounded-md">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-muted/30"
-      >
-        {statusIcon}
-        <span className="text-sm font-medium flex-1 truncate">
-          {run.nodeLabel || run.nodeType}
-        </span>
-        <Badge variant="outline" className="text-[10px]">
-          {run.nodeType}
-        </Badge>
-        {run.modelUsed && (
-          <span className="text-xs font-mono text-muted-foreground">{run.modelUsed}</span>
-        )}
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {run.tokensIn + run.tokensOut} tok
-        </span>
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {run.latencyMs}ms
-        </span>
-        {run.costUsd > 0 && (
-          <span className="text-xs text-muted-foreground tabular-nums">{formatCost(run.costUsd)}</span>
-        )}
-      </button>
-      {expanded && (
-        <div className="px-3 pb-3 pt-1 space-y-3">
-          {run.errorMessage && (
-            <div className="text-xs font-mono bg-rose-500/5 border border-rose-500/30 rounded p-2 whitespace-pre-wrap">
-              {run.errorMessage}
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">
-                {t("executions.input")}
-              </div>
-              <pre className="text-xs font-mono bg-muted/40 rounded p-2 max-h-48 overflow-y-auto custom-scrollbar">
-                {JSON.stringify(run.input, null, 2)}
-              </pre>
-            </div>
-            <div>
-              <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">
-                {t("executions.output")}
-              </div>
-              <pre className="text-xs font-mono bg-muted/40 rounded p-2 max-h-48 overflow-y-auto custom-scrollbar">
-                {JSON.stringify(run.output, null, 2)}
-              </pre>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
   );
 }

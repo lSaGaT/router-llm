@@ -63,7 +63,7 @@ export function decryptSecret(ivAuth: string, encryptedSecret: string): string {
 }
 
 /** Encrypt a credential payload (API key, organization, etc.) as JSON. */
-export function encryptCredentialPayload(payload: Record<string, unknown>): EncryptedPayload {
+export function encryptCredentialPayload(payload: object): EncryptedPayload {
   return encryptSecret(JSON.stringify(payload));
 }
 

@@ -1,18 +1,20 @@
 /**
  * GET /api/settings  — returns gateway runtime settings (no secrets)
  *
- * Used by the UI to show the user what env vars they need to set in their
- * Claude Code configuration.
+ * Used by the UI to show the user how to point Claude Code at the phase
+ * router and what env vars to set / remove.
  */
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getOrCreateRouterConfig } from "@/lib/router/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const deployedCount = await db.harness.count({ where: { isDeployed: true } });
   const credentialCount = await db.credential.count();
+  const router = await getOrCreateRouterConfig();
+  const routerConfigured = !!router.data.routes.FALLBACK.credentialId;
 
   return NextResponse.json({
     /** The base URL the user should set as ANTHROPIC_BASE_URL in their Claude Code env. */
@@ -24,14 +26,14 @@ export async function GET() {
       ? `${process.env.HARNESS_API_KEY.slice(0, 4)}...${process.env.HARNESS_API_KEY.slice(-4)}`
       : null,
     /** Stats */
-    hasDeployedHarness: deployedCount > 0,
+    routerConfigured,
     credentialCount,
     /** The encryption key status — useful warning for the user. */
     encryptionKeySet: !!process.env.HARNESS_ENCRYPTION_KEY,
-    /** Suggested env vars for the user to copy/paste into their shell. */
+    /** Suggested env vars for the user to copy/paste into Claude Code settings. */
     claudeCodeEnv: {
-      ANTHROPIC_BASE_URL: "<your-host>/api/v1",
-      ANTHROPIC_API_KEY: process.env.HARNESS_API_KEY || "<set HARNESS_API_KEY in .env>",
+      ANTHROPIC_BASE_URL: "http://localhost:3000/api/v1",
+      ANTHROPIC_AUTH_TOKEN: process.env.HARNESS_API_KEY || "<anything — gateway auth is off>",
     },
   });
 }

@@ -1,14 +1,14 @@
 "use client";
 
 /**
- * SettingsView — shows gateway status, env vars to copy into Claude Code, and warnings.
+ * SettingsView — shows gateway status, Claude Code setup steps, and warnings.
  */
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle2, AlertTriangle, Terminal, Rocket, ShieldCheck, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Terminal, Route, ShieldCheck, Loader2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/provider";
 import { PinSettingsSection } from "@/components/harness/pin-settings-section";
 
@@ -43,11 +43,11 @@ export function SettingsView() {
       {/* Status grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <StatusCard
-          icon={Rocket}
-          label={t("settings.deployedHarness")}
-          ok={data.hasDeployedHarness}
-          okText={t("settings.deployedHarnessOk")}
-          notOkText={t("settings.deployedHarnessNotOk")}
+          icon={Route}
+          label={t("settings.routerConfigured")}
+          ok={data.routerConfigured}
+          okText={t("settings.routerConfiguredOk")}
+          notOkText={t("settings.routerConfiguredNotOk")}
         />
         <StatusCard
           icon={ShieldCheck}
@@ -83,12 +83,13 @@ HARNESS_ENCRYPTION_KEY=<paste-here>`}
         </Alert>
       )}
 
-      {!data.hasDeployedHarness && (
+      {!data.routerConfigured && (
         <Alert>
           <AlertTriangle className="w-4 h-4" />
-          <AlertTitle>{t("settings.noHarnessWarningTitle")}</AlertTitle>
+          <AlertTitle>{t("settings.noRouterWarningTitle")}</AlertTitle>
           <AlertDescription>
-            {t("settings.noHarnessWarningBody")}<strong>{t("nav.harnesses")}</strong>{t("settings.noHarnessWarningBody2")}<strong> {t("harnesses.deploy")}</strong>.{t("settings.noHarnessWarningBody3")}
+            {t("settings.noRouterWarningBody")} <strong>{t("nav.credentials")}</strong>{" → "}
+            <strong>{t("nav.router")}</strong>.
           </AlertDescription>
         </Alert>
       )}
@@ -100,23 +101,38 @@ HARNESS_ENCRYPTION_KEY=<paste-here>`}
             <Terminal className="w-4 h-4" />
             {t("settings.setupTitle")}
           </CardTitle>
-          <CardDescription>
-            {t("settings.setupDesc")}
-          </CardDescription>
+          <CardDescription>{t("settings.setupDesc")}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <pre className="text-xs font-mono bg-muted/40 p-4 rounded-md overflow-x-auto">
-            {`${t("settings.setupComment")}
-export ANTHROPIC_BASE_URL=${gatewayHost}${data.gatewayBaseUrl}
-
-${t("settings.setupComment2")}
-export ANTHROPIC_API_KEY=${data.claudeCodeEnv.ANTHROPIC_API_KEY}
-
-# claude`}
-          </pre>
-          <p className="text-xs text-muted-foreground mt-3">
-            {t("settings.setupHint")}<code className="font-mono">~/.bashrc</code>{t("settings.setupHint2")}<code className="font-mono">~/.zshrc</code>.
-          </p>
+        <CardContent className="space-y-4">
+          <ol className="list-decimal list-inside space-y-2 text-sm">
+            <li>{t("settings.step1")}</li>
+            <li>{t("settings.step2")}</li>
+            <li>{t("settings.step3")}</li>
+            <li>{t("settings.step4")}</li>
+          </ol>
+          <div>
+            <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">
+              {t("settings.envBlockTitle")}
+            </div>
+            <pre className="text-xs font-mono bg-muted/40 p-4 rounded-md overflow-x-auto">
+              {`"env": {
+  "ANTHROPIC_BASE_URL": "${gatewayHost}${data.gatewayBaseUrl}",
+  "ANTHROPIC_AUTH_TOKEN": "${data.claudeCodeEnv.ANTHROPIC_AUTH_TOKEN}"
+}`}
+            </pre>
+          </div>
+          <Alert variant="destructive">
+            <AlertTriangle className="w-4 h-4" />
+            <AlertTitle>{t("settings.removeDefaultsTitle")}</AlertTitle>
+            <AlertDescription>
+              {t("settings.removeDefaultsBody")}
+              <pre className="text-xs font-mono mt-2 bg-muted/40 p-2 rounded">{`ANTHROPIC_DEFAULT_OPUS_MODEL
+ANTHROPIC_DEFAULT_SONNET_MODEL
+ANTHROPIC_DEFAULT_HAIKU_MODEL
+ANTHROPIC_SMALL_FAST_MODEL`}</pre>
+            </AlertDescription>
+          </Alert>
+          <p className="text-xs text-muted-foreground">{t("settings.cacheNote")}</p>
         </CardContent>
       </Card>
 
@@ -132,12 +148,12 @@ export ANTHROPIC_API_KEY=${data.claudeCodeEnv.ANTHROPIC_API_KEY}
             <Badge variant="secondary">{t("settings.endpointLabels.anthropic")}</Badge>
           </div>
           <div className="flex items-center justify-between">
-            <code className="font-mono text-xs">{t("settings.endpoints.getModels")}</code>
-            <Badge variant="secondary">{t("settings.endpointLabels.modelsList")}</Badge>
+            <code className="font-mono text-xs">{t("settings.endpoints.countTokens")}</code>
+            <Badge variant="secondary">{t("settings.endpointLabels.anthropic")}</Badge>
           </div>
           <div className="flex items-center justify-between">
-            <code className="font-mono text-xs">{t("settings.endpoints.getMessagesAlias")}</code>
-            <Badge variant="secondary">{t("settings.endpointLabels.alias")}</Badge>
+            <code className="font-mono text-xs">{t("settings.endpoints.getModels")}</code>
+            <Badge variant="secondary">{t("settings.endpointLabels.modelsList")}</Badge>
           </div>
         </CardContent>
       </Card>

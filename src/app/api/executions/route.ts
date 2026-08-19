@@ -32,8 +32,12 @@ export async function GET(req: NextRequest) {
     executions: executions.map((e) => ({
       id: e.id,
       harnessId: e.harnessId,
-      harnessName: e.harness?.name || "(deleted)",
+      harnessName: e.harness?.name || null,
       status: e.status,
+      phase: e.phase,
+      matchedRule: e.matchedRule,
+      requestedModel: e.requestedModel,
+      routedModel: e.routedModel,
       totalTokensIn: e.totalTokensIn,
       totalTokensOut: e.totalTokensOut,
       totalCostUsd: e.totalCostUsd,

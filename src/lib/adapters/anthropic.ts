@@ -12,7 +12,7 @@ import type {
   ModelAdapter,
   ModelCallRequest,
   ModelCallResult,
-} from "@/lib/workflow/types";
+} from "@/lib/adapters/types";
 
 export interface AnthropicAdapterOptions {
   apiKey: string;

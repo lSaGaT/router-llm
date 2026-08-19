@@ -107,9 +107,17 @@ model Execution {
 
   nodeRuns    NodeRun[]
 
+  // Phase router fields (proxy mode — one request = one routed call):
+  phase       String?  // "PLAN" | "EXECUTE" | "REVIEW" | "UTILITY"
+  matchedRule String?  // name of the detection rule that matched, or "fallback"
+  requestedModel String? // model the client asked for, e.g. "claude-3-5-haiku-20241022"
+  routedModel String?  // model we rewrote the request to, e.g. "glm-4.5-air"
+  routedCredentialId String? // credential used for the upstream call
+
   @@index([harnessId])
   @@index([status])
   @@index([startedAt])
+  @@index([phase])
 }
 
 /// Per-node execution log — used for replay/debug.
@@ -136,4 +144,18 @@ model NodeRun {
 
   @@index([executionId])
   @@index([nodeId])
+}
+
+/// Active phase-router configuration (proxy mode).
+/// Single-tenant: one active row. configJson holds RouterConfigData
+/// (routes per phase + detection rules) — same JSON-blob pattern as graphJson.
+model RouterConfig {
+  id         String   @id @default(cuid())
+  isActive   Boolean  @default(true)
+  configJson String
+  version    Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([isActive])
 }

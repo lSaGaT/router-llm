@@ -7,6 +7,15 @@ import { db } from "@/lib/db";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/** Parse a stored JSON blob; truncated summaries may be invalid — return raw. */
+function safeParse(json: string): unknown {
+  try {
+    return JSON.parse(json);
+  } catch {
+    return json;
+  }
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -33,11 +42,16 @@ export async function GET(
   return NextResponse.json({
     id: execution.id,
     harnessId: execution.harnessId,
-    harnessName: execution.harness?.name || "(deleted)",
+    harnessName: execution.harness?.name || null,
     status: execution.status,
     errorMessage: execution.errorMessage,
-    request: JSON.parse(execution.requestJson),
-    response: execution.responseJson ? JSON.parse(execution.responseJson) : null,
+    phase: execution.phase,
+    matchedRule: execution.matchedRule,
+    requestedModel: execution.requestedModel,
+    routedModel: execution.routedModel,
+    routedCredentialId: execution.routedCredentialId,
+    request: safeParse(execution.requestJson),
+    response: execution.responseJson ? safeParse(execution.responseJson) : null,
     totalTokensIn: execution.totalTokensIn,
     totalTokensOut: execution.totalTokensOut,
     totalCostUsd: execution.totalCostUsd,

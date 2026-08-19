@@ -23,16 +23,22 @@ interface TranslationDict {
   app: {
     title: string;
     subtitle: string;
-    deployed: string;
-    notDeployed: string;
+    configured: string;
+    notConfigured: string;
     bannerTip: string;
     bannerTipLink: string;
     footer: string;
     footerTag: string;
     openSource: string;
   };
+  theme: {
+    light: string;
+    dark: string;
+    system: string;
+    toggle: string;
+  };
   nav: {
-    harnesses: string;
+    router: string;
     credentials: string;
     executions: string;
     settings: string;
@@ -112,103 +118,60 @@ interface TranslationDict {
     discoveredToast: string;
   };
 
-  // ─── Harnesses ───
-  harnesses: {
+  // ─── Phase router ───
+  router: {
     title: string;
     subtitle: string;
-    new: string;
-    newHarness: string;
-    executionCount: string;
-    noHarnessesYet: string;
-    createFirst: string;
-    deployed: string;
-    deploy: string;
-    deployedToast: string;
-    deletedToast: string;
-    createdToast: string;
-    description: string;
-    descriptionPlaceholder: string;
-    export: string;
-    exportedToast: string;
-    back: string;
-  };
-
-  // ─── Canvas ───
-  canvas: {
-    addNode: string;
-    palette: {
-      trigger: string;
-      triggerDesc: string;
-      model: string;
-      modelDesc: string;
-      condition: string;
-      conditionDesc: string;
-      end: string;
-      endDesc: string;
-      dragHint: string;
-    };
-    nodes: {
-      trigger: string;
-      model: string;
-      condition: string;
-      end: string;
-      planner: string;
-      reviewer: string;
-      executor: string;
-      escalate: string;
-      noModel: string;
-      start: string;
-      terminate: string;
-    };
-    edges: {
-      true: string;
-      false: string;
-    };
-  };
-
-  // ─── Node config panel ───
-  nodeConfig: {
-    noSelection: string;
-    noSelectionHint: string;
+    save: string;
+    saved: string;
+    saveFailed: string;
+    loadFailed: string;
     credential: string;
+    credentialPlaceholder: string;
+    credentialNone: string;
     model: string;
     modelPlaceholder: string;
-    noCredentialsWarning: string;
-    suggestedModels: string;
-    suggestedModelsHint: string;
-    systemPrompt: string;
-    systemPromptPlaceholder: string;
-    temperature: string;
-    maxTokens: string;
-    topP: string;
-    extendedThinking: string;
-    extendedThinkingDesc: string;
-    thinkingBudget: string;
-    trigger: string;
-    triggerDesc: string;
-    end: string;
-    endDesc: string;
-    condition: string;
-    conditionDesc: string;
-    conditionField: string;
-    conditionFieldPlaceholder: string;
-    operator: string;
-    value: string;
-    valuePlaceholder: string;
-    valueHint: string;
-    operators: {
-      ">": string;
-      ">=": string;
-      "<": string;
-      "<=": string;
-      "==": string;
-      "!=": string;
-      contains: string;
+    phases: {
+      PLAN: string;
+      EXECUTE: string;
+      REVIEW: string;
+      UTILITY: string;
+      FALLBACK: string;
     };
-    trueBranch: string;
-    falseBranch: string;
-    trueBranchHint: string;
-    falseBranchHint: string;
+    phaseDesc: {
+      PLAN: string;
+      EXECUTE: string;
+      REVIEW: string;
+      UTILITY: string;
+      FALLBACK: string;
+    };
+    banner: {
+      noCredential: string;
+      noCredentialDesc: string;
+      noRules: string;
+      noRulesDesc: string;
+    };
+    rules: {
+      title: string;
+      subtitle: string;
+      add: string;
+      newName: string;
+      enabled: string;
+      name: string;
+      value: string;
+      invalidRegex: string;
+    };
+    fields: {
+      requestedModel: string;
+      tools: string;
+      systemPrompt: string;
+      lastMessages: string;
+    };
+    operators: {
+      contains: string;
+      regex: string;
+      equals: string;
+    };
   };
 
   // ─── Executions ───
@@ -223,14 +186,14 @@ interface TranslationDict {
     tokens: string;
     tokensInOut: string;
     cost: string;
-    nodes: string;
+    matchedRule: string;
+    routedModel: string;
+    requestSummary: string;
+    responseSummary: string;
     error: string;
-    replayTitle: string;
-    noNodeRuns: string;
-    input: string;
-    output: string;
     columns: {
-      harness: string;
+      phase: string;
+      model: string;
       status: string;
       duration: string;
       tokens: string;
@@ -282,9 +245,9 @@ interface TranslationDict {
   settings: {
     title: string;
     subtitle: string;
-    deployedHarness: string;
-    deployedHarnessOk: string;
-    deployedHarnessNotOk: string;
+    routerConfigured: string;
+    routerConfiguredOk: string;
+    routerConfiguredNotOk: string;
     authEnabled: string;
     authEnabledOk: string;
     authEnabledNotOk: string;
@@ -293,27 +256,28 @@ interface TranslationDict {
     encryptionKeyNotOk: string;
     encryptionWarningTitle: string;
     encryptionWarningBody: string;
-    noHarnessWarningTitle: string;
-    noHarnessWarningBody: string;
-    noHarnessWarningBody2: string;
-    noHarnessWarningBody3: string;
+    noRouterWarningTitle: string;
+    noRouterWarningBody: string;
     setupTitle: string;
     setupDesc: string;
-    setupHint: string;
-    setupHint2: string;
-    setupComment: string;
-    setupComment2: string;
+    step1: string;
+    step2: string;
+    step3: string;
+    step4: string;
+    envBlockTitle: string;
+    removeDefaultsTitle: string;
+    removeDefaultsBody: string;
+    cacheNote: string;
     gatewayEndpoints: string;
     gatewayEndpointsDesc: string;
     endpoints: {
       postMessages: string;
+      countTokens: string;
       getModels: string;
-      getMessagesAlias: string;
     };
     endpointLabels: {
       anthropic: string;
       modelsList: string;
-      alias: string;
     };
   };
 }
@@ -323,18 +287,24 @@ interface TranslationDict {
 // ─────────────────────────────────────────────────────────────────────────────
 const ptBR: TranslationDict = {
   app: {
-    title: "LLM Harness",
-    subtitle: "Construtor visual de workflows para agentes de código",
-    deployed: "Gateway ativo",
-    notDeployed: "Nenhum harness implantado",
-    bannerTip: "Dica: implante um harness e aponte o Claude Code para este gateway. Veja a aba",
+    title: "LLM Router",
+    subtitle: "Motor de troca de LLMs por fase para o Claude Code",
+    configured: "Router ativo",
+    notConfigured: "Router não configurado",
+    bannerTip: "Dica: configure o router e aponte o Claude Code para este gateway. Veja a aba",
     bannerTipLink: "Configurações",
-    footer: "LLM Harness · Self-hosted · ",
+    footer: "LLM Router · Self-hosted · ",
     footerTag: "Single-tenant · Local-first",
     openSource: "Código aberto",
   },
+  theme: {
+    light: "Claro",
+    dark: "Escuro",
+    system: "Sistema",
+    toggle: "Alternar tema",
+  },
   nav: {
-    harnesses: "Harnesses",
+    router: "Router",
     credentials: "Credenciais",
     executions: "Execuções",
     settings: "Configurações",
@@ -409,118 +379,79 @@ const ptBR: TranslationDict = {
     updatedToast: "Credencial atualizada",
     discoveredToast: "{count} modelos descobertos",
   },
-  harnesses: {
-    title: "Harnesses",
-    subtitle: "Cada harness é um workflow visual que orquestra LLMs. Implante um para que ele receba os requests do Claude Code.",
-    new: "Novo Harness",
-    newHarness: "Novo Harness",
-    executionCount: "execuções",
-    noHarnessesYet: "Nenhum harness ainda.",
-    createFirst: "Crie seu primeiro harness",
-    deployed: "IMPLANTADO",
-    deploy: "Implantar",
-    deployedToast: "Harness implantado! Agora ele recebe os requests do Claude Code.",
-    deletedToast: "Harness excluído",
-    createdToast: "Novo harness criado",
-    description: "Descrição",
-    descriptionPlaceholder: "Descreva brevemente o que este harness faz...",
-    export: "Exportar",
-    exportedToast: "Harness exportado como JSON",
-    back: "Voltar",
-  },
-  canvas: {
-    addNode: "Adicionar nó",
-    palette: {
-      trigger: "Trigger",
-      triggerDesc: "Ponto de entrada",
-      model: "Modelo",
-      modelDesc: "Chama uma LLM",
-      condition: "Condição",
-      conditionDesc: "Ramifica por variável",
-      end: "Fim",
-      endDesc: "Termina o workflow",
-      dragHint: "Arraste para o canvas ou clique para adicionar.",
-    },
-    nodes: {
-      trigger: "Trigger",
-      model: "Modelo",
-      condition: "Condição",
-      end: "Fim",
-      planner: "Planejador",
-      reviewer: "Revisor",
-      executor: "Executor",
-      escalate: "Escalonar",
-      noModel: "(sem modelo)",
-      start: "Início",
-      terminate: "Terminar",
-    },
-    edges: {
-      true: "VERDADEIRO",
-      false: "FALSO",
-    },
-  },
-  nodeConfig: {
-    noSelection: "Nenhum nó selecionado",
-    noSelectionHint: "Clique em um nó no canvas para editar suas propriedades.",
+  router: {
+    title: "Router de fases",
+    subtitle: "Cada fase do Claude Code (planejar, executar, revisar, utilidade) usa a LLM configurada abaixo. O gateway é um proxy transparente — só o modelo troca.",
+    save: "Salvar",
+    saved: "Configuração do router salva",
+    saveFailed: "Falha ao salvar",
+    loadFailed: "Falha ao carregar configuração",
     credential: "Credencial",
+    credentialPlaceholder: "Selecione uma credencial...",
+    credentialNone: "— nenhuma —",
     model: "Modelo",
-    modelPlaceholder: "Digite um id de modelo (ex: glm-5.3)...",
-    noCredentialsWarning: "Nenhuma credencial ainda. Crie uma na aba Credenciais primeiro.",
-    suggestedModels: "Modelos sugeridos",
-    suggestedModelsHint: "Clique em \"Descobrir\" acima para buscar a lista ao vivo do provider.",
-    systemPrompt: "Prompt do sistema",
-    systemPromptPlaceholder: "Você é um revisor de código meticuloso...",
-    temperature: "Temperatura",
-    maxTokens: "Tokens máximos de saída",
-    topP: "Top P",
-    extendedThinking: "Raciocínio estendido",
-    extendedThinkingDesc: "Ativa modo de raciocínio (Claude extended thinking, GLM thinking, DeepSeek R1).",
-    thinkingBudget: "Orçamento de raciocínio (tokens)",
-    trigger: "Trigger",
-    triggerDesc: "O nó trigger é o ponto de entrada do workflow. Todo request recebido pelo gateway começa aqui e flui pela aresta conectada.",
-    end: "Fim",
-    endDesc: "O nó fim termina o workflow. A última mensagem do assistente produzida upstream é enviada de volta ao cliente (Claude Code) como resposta final.",
-    condition: "Condição",
-    conditionDesc: "Ramifica com base em uma variável da conversa. Se a variável não existir em \"variables\", o motor tenta extraí-la da última mensagem do assistente (ex: \"score: 72\").",
-    conditionField: "Campo",
-    conditionFieldPlaceholder: "score | tokens | complexity | approved",
-    operator: "Operador",
-    value: "Valor",
-    valuePlaceholder: "7 | 100000 | high | true",
-    valueHint: "Dica: números são comparados numericamente; strings são comparadas lexicamente.",
-    operators: {
-      ">": "> maior que",
-      ">=": ">= maior ou igual",
-      "<": "< menor que",
-      "<=": "<= menor ou igual",
-      "==": "== igual",
-      "!=": "!= diferente",
-      contains: "contém (subtexto)",
+    modelPlaceholder: "ex: glm-5.3 ou glm-5.3[1m]",
+    phases: {
+      PLAN: "Planejamento",
+      EXECUTE: "Execução",
+      REVIEW: "Revisão",
+      UTILITY: "Utilidade",
+      FALLBACK: "Fallback",
     },
-    trueBranch: "Branch VERDADEIRO",
-    falseBranch: "Branch FALSO",
-    trueBranchHint: "Conecte a partir do handle inferior esquerdo (verde).",
-    falseBranchHint: "Conecte a partir do handle inferior direito (vermelho).",
+    phaseDesc: {
+      PLAN: "plan mode ativo (tool ExitPlanMode presente)",
+      EXECUTE: "loop principal do agente",
+      REVIEW: "subagentes de revisão de código",
+      UTILITY: "títulos, sumarização, background (haiku)",
+      FALLBACK: "quando nada mais casar",
+    },
+    banner: {
+      noCredential: "Rota sem credencial ou modelo",
+      noCredentialDesc: "O gateway vai retornar 503 para esta fase. Selecione uma credencial e um modelo (aba Credenciais cria novas).",
+      noRules: "Nenhuma regra ativa",
+      noRulesDesc: "Sem regras habilitadas, todos os requests caem no fallback.",
+    },
+    rules: {
+      title: "Regras de detecção",
+      subtitle: "Avaliadas em ordem; a primeira que casa define a fase. Edite, reordene ou adicione.",
+      add: "Nova regra",
+      newName: "Nova regra",
+      enabled: "Ativa",
+      name: "Nome",
+      value: "Valor",
+      invalidRegex: "Expressão regular inválida — corrija antes de salvar.",
+    },
+    fields: {
+      requestedModel: "Modelo pedido",
+      tools: "Ferramentas",
+      systemPrompt: "System prompt",
+      lastMessages: "Últimas mensagens",
+    },
+    operators: {
+      contains: "contém",
+      regex: "regex",
+      equals: "igual a",
+    },
   },
   executions: {
     title: "Execuções",
-    subtitle: "Cada request que o Claude Code envia ao gateway cria uma execução. Clique em qualquer linha para ver o replay nó por nó.",
+    subtitle: "Cada request que o Claude Code envia ao gateway cria uma execução. Clique em qualquer linha para ver os detalhes.",
     noExecutions: "Nenhuma execução ainda.",
-    noExecutionsHint: "Implante um harness e faça um request via Claude Code para ver execuções aqui.",
+    noExecutionsHint: "Aponte o Claude Code para este gateway e faça um request para ver execuções aqui.",
     backToList: "Voltar à lista",
     detail: "Detalhe da execução",
     duration: "Duração",
     tokens: "Tokens",
     tokensInOut: "Tokens (entra/sai)",
     cost: "Custo",
-    nodes: "Nós",
+    matchedRule: "Regra que casou",
+    routedModel: "Modelo roteado",
+    requestSummary: "Resumo do request (truncado)",
+    responseSummary: "Resumo da resposta (truncado)",
     error: "Erro",
-    replayTitle: "Replay nó por nó",
-    noNodeRuns: "Nenhuma execução de nó registrada.",
-    input: "Entrada",
-    output: "Saída",
     columns: {
-      harness: "Harness",
+      phase: "Fase",
+      model: "Modelo (pedido → roteado)",
       status: "Status",
       duration: "Duração",
       tokens: "Tokens (entra/sai)",
@@ -570,9 +501,9 @@ const ptBR: TranslationDict = {
   settings: {
     title: "Configurações",
     subtitle: "Configure o Claude Code para apontar para este gateway. Self-hosted, single-tenant — sem auth multi-tenant.",
-    deployedHarness: "Harness implantado",
-    deployedHarnessOk: "Ativo",
-    deployedHarnessNotOk: "Não implantado",
+    routerConfigured: "Router configurado",
+    routerConfiguredOk: "Pronto para receber requests",
+    routerConfiguredNotOk: "Falta credencial nas rotas",
     authEnabled: "Auth (HARNESS_API_KEY)",
     authEnabledOk: "Ativada",
     authEnabledNotOk: "Aberta (sem auth)",
@@ -581,27 +512,28 @@ const ptBR: TranslationDict = {
     encryptionKeyNotOk: "Usando fallback de dev",
     encryptionWarningTitle: "Chave de criptografia não definida",
     encryptionWarningBody: "As API keys são criptografadas com HARNESS_ENCRYPTION_KEY, mas ela não está definida — usando um fallback de dev determinístico. Gere uma chave forte e adicione em .env antes de implantar para valer:",
-    noHarnessWarningTitle: "Nenhum harness implantado ainda",
-    noHarnessWarningBody: "Abra a aba ",
-    noHarnessWarningBody2: ", crie ou abra um harness, e clique em ",
-    noHarnessWarningBody3: ". Apenas harnesses implantados recebem requests do gateway.",
+    noRouterWarningTitle: "Router não configurado",
+    noRouterWarningBody: "Pelo menos uma rota está sem credencial/modelo. Crie uma credencial com o preset \"Z.ai (GLM) — Anthropic API\" na aba",
     setupTitle: "Configuração do Claude Code",
-    setupDesc: "Defina estas variáveis de ambiente no seu shell antes de rodar claude. O Claude Code então vai rotear todos os requests por este gateway.",
-    setupHint: "Você pode colocá-las no seu ",
-    setupHint2: " ou ",
-    setupComment: "# Aponta o Claude Code para este gateway em vez de api.anthropic.com",
-    setupComment2: "# Use o HARNESS_API_KEY do seu .env (ou qualquer valor se auth estiver desativada)",
+    setupDesc: "Siga os passos abaixo para o motor trocar as LLMs por você, transparente.",
+    step1: "Na aba Credenciais, crie uma credencial com o preset \"Z.ai (GLM) — Anthropic API\" (sua chave da Z.ai).",
+    step2: "Na aba Router, selecione a credencial em cada fase e salve.",
+    step3: "No arquivo ~/.claude/settings.json, dentro de \"env\", cole o bloco abaixo.",
+    step4: "Rode o app com o gateway de pé (bun run dev) e use o claude normalmente.",
+    envBlockTitle: "Bloco env do settings.json",
+    removeDefaultsTitle: "Importante: remova os mapeamentos de modelo",
+    removeDefaultsBody: "Se existirem ANTHROPIC_DEFAULT_*_MODEL no seu settings.json, o Claude Code nunca pede \"haiku\" e a detecção da fase Utilidade não funciona. Remova todas estas variáveis (e o ANTHROPIC_BASE_URL antigo da Z.ai):",
+    cacheNote: "Nota: trocar de modelo entre fases invalida o prompt cache do provedor — pode aumentar um pouco o custo de tokens de entrada. É o preço da troca de cérebro.",
     gatewayEndpoints: "Endpoints do gateway",
     gatewayEndpointsDesc: "Superfície de API compatível com Anthropic.",
     endpoints: {
       postMessages: "POST /api/v1/messages",
+      countTokens: "POST /api/v1/messages/count_tokens",
       getModels: "GET /api/v1/models",
-      getMessagesAlias: "GET /api/v1/messages",
     },
     endpointLabels: {
       anthropic: "Anthropic Messages API",
       modelsList: "Lista de modelos",
-      alias: "Mesmo (alias)",
     },
   },
 };
@@ -611,18 +543,24 @@ const ptBR: TranslationDict = {
 // ─────────────────────────────────────────────────────────────────────────────
 const en: TranslationDict = {
   app: {
-    title: "LLM Harness",
-    subtitle: "Visual workflow builder for coding agents",
-    deployed: "Gateway live",
-    notDeployed: "No harness deployed",
-    bannerTip: "Tip: deploy a harness and point Claude Code at this gateway. See the",
+    title: "LLM Router",
+    subtitle: "Phase-based LLM switching engine for Claude Code",
+    configured: "Router live",
+    notConfigured: "Router not configured",
+    bannerTip: "Tip: configure the router and point Claude Code at this gateway. See the",
     bannerTipLink: "Settings tab",
-    footer: "LLM Harness · Self-hosted · ",
+    footer: "LLM Router · Self-hosted · ",
     footerTag: "Single-tenant · Local-first",
     openSource: "Open source",
   },
+  theme: {
+    light: "Light",
+    dark: "Dark",
+    system: "System",
+    toggle: "Toggle theme",
+  },
   nav: {
-    harnesses: "Harnesses",
+    router: "Router",
     credentials: "Credentials",
     executions: "Executions",
     settings: "Settings",
@@ -697,118 +635,79 @@ const en: TranslationDict = {
     updatedToast: "Credential updated",
     discoveredToast: "{count} models discovered",
   },
-  harnesses: {
-    title: "Harnesses",
-    subtitle: "Each harness is a visual workflow that orchestrates LLMs. Deploy one to make it receive requests from Claude Code.",
-    new: "New Harness",
-    newHarness: "New Harness",
-    executionCount: "executions",
-    noHarnessesYet: "No harnesses yet.",
-    createFirst: "Create your first harness",
-    deployed: "DEPLOYED",
-    deploy: "Deploy",
-    deployedToast: "Harness deployed! It will now receive Claude Code requests.",
-    deletedToast: "Harness deleted",
-    createdToast: "New harness created",
-    description: "Description",
-    descriptionPlaceholder: "Briefly describe what this harness does...",
-    export: "Export",
-    exportedToast: "Harness exported as JSON",
-    back: "Back",
-  },
-  canvas: {
-    addNode: "Add node",
-    palette: {
-      trigger: "Trigger",
-      triggerDesc: "Entry point",
-      model: "Model",
-      modelDesc: "Call an LLM",
-      condition: "Condition",
-      conditionDesc: "Branch on variable",
-      end: "End",
-      endDesc: "Terminate workflow",
-      dragHint: "Drag to the canvas or click to add.",
-    },
-    nodes: {
-      trigger: "Trigger",
-      model: "Model",
-      condition: "Condition",
-      end: "End",
-      planner: "Planner",
-      reviewer: "Reviewer",
-      executor: "Executor",
-      escalate: "Escalate",
-      noModel: "(no model)",
-      start: "Start",
-      terminate: "Terminate",
-    },
-    edges: {
-      true: "TRUE",
-      false: "FALSE",
-    },
-  },
-  nodeConfig: {
-    noSelection: "No node selected",
-    noSelectionHint: "Click a node on the canvas to edit its properties.",
+  router: {
+    title: "Phase router",
+    subtitle: "Each Claude Code phase (plan, execute, review, utility) uses the LLM configured below. The gateway is a transparent proxy — only the model switches.",
+    save: "Save",
+    saved: "Router configuration saved",
+    saveFailed: "Save failed",
+    loadFailed: "Failed to load configuration",
     credential: "Credential",
+    credentialPlaceholder: "Select a credential...",
+    credentialNone: "— none —",
     model: "Model",
-    modelPlaceholder: "Type a model id (e.g. glm-5.3)...",
-    noCredentialsWarning: "No credentials yet. Create one in the Credentials tab first.",
-    suggestedModels: "Suggested models",
-    suggestedModelsHint: "Click \"Discover\" above to fetch the live list from the provider.",
-    systemPrompt: "System prompt",
-    systemPromptPlaceholder: "You are a meticulous code reviewer...",
-    temperature: "Temperature",
-    maxTokens: "Max output tokens",
-    topP: "Top P",
-    extendedThinking: "Extended thinking",
-    extendedThinkingDesc: "Enables reasoning mode (Claude extended thinking, GLM thinking, DeepSeek R1).",
-    thinkingBudget: "Thinking budget (tokens)",
-    trigger: "Trigger",
-    triggerDesc: "The trigger node is the entry point of the workflow. Every request received by the gateway starts here and flows through the connected edge.",
-    end: "End",
-    endDesc: "The end node terminates the workflow. The last assistant message produced upstream is sent back to the client (Claude Code) as the final response.",
-    condition: "Condition",
-    conditionDesc: "Branch based on a variable from the conversation. If the variable doesn't exist in \"variables\", the engine tries to extract it from the last assistant message (e.g. \"score: 72\").",
-    conditionField: "Field",
-    conditionFieldPlaceholder: "score | tokens | complexity | approved",
-    operator: "Operator",
-    value: "Value",
-    valuePlaceholder: "7 | 100000 | high | true",
-    valueHint: "Tip: numbers are compared numerically; strings are compared lexically.",
-    operators: {
-      ">": "> greater than",
-      ">=": ">= greater or equal",
-      "<": "< less than",
-      "<=": "<= less or equal",
-      "==": "== equal",
-      "!=": "!= not equal",
-      contains: "contains (substring)",
+    modelPlaceholder: "e.g. glm-5.3 or glm-5.3[1m]",
+    phases: {
+      PLAN: "Planning",
+      EXECUTE: "Execution",
+      REVIEW: "Review",
+      UTILITY: "Utility",
+      FALLBACK: "Fallback",
     },
-    trueBranch: "TRUE branch",
-    falseBranch: "FALSE branch",
-    trueBranchHint: "Connect from the bottom-left handle (green).",
-    falseBranchHint: "Connect from the bottom-right handle (red).",
+    phaseDesc: {
+      PLAN: "plan mode active (ExitPlanMode tool present)",
+      EXECUTE: "main agent loop",
+      REVIEW: "code review subagents",
+      UTILITY: "titles, summarization, background (haiku)",
+      FALLBACK: "when nothing else matches",
+    },
+    banner: {
+      noCredential: "Route missing credential or model",
+      noCredentialDesc: "The gateway will return 503 for this phase. Pick a credential and a model (create new ones in the Credentials tab).",
+      noRules: "No active rules",
+      noRulesDesc: "With no enabled rules, every request falls back to the fallback route.",
+    },
+    rules: {
+      title: "Detection rules",
+      subtitle: "Evaluated in order; the first match sets the phase. Edit, reorder, or add.",
+      add: "New rule",
+      newName: "New rule",
+      enabled: "Enabled",
+      name: "Name",
+      value: "Value",
+      invalidRegex: "Invalid regular expression — fix it before saving.",
+    },
+    fields: {
+      requestedModel: "Requested model",
+      tools: "Tools",
+      systemPrompt: "System prompt",
+      lastMessages: "Last messages",
+    },
+    operators: {
+      contains: "contains",
+      regex: "regex",
+      equals: "equals",
+    },
   },
   executions: {
     title: "Executions",
-    subtitle: "Every request Claude Code sends to the gateway creates one execution. Click any row to see the per-node replay.",
+    subtitle: "Every request Claude Code sends to the gateway creates one execution. Click any row for details.",
     noExecutions: "No executions yet.",
-    noExecutionsHint: "Deploy a harness and make a request via Claude Code to see executions here.",
+    noExecutionsHint: "Point Claude Code at this gateway and make a request to see executions here.",
     backToList: "Back to list",
     detail: "Execution detail",
     duration: "Duration",
     tokens: "Tokens",
     tokensInOut: "Tokens (in/out)",
     cost: "Cost",
-    nodes: "Nodes",
+    matchedRule: "Matched rule",
+    routedModel: "Routed model",
+    requestSummary: "Request summary (truncated)",
+    responseSummary: "Response summary (truncated)",
     error: "Error",
-    replayTitle: "Node-by-node replay",
-    noNodeRuns: "No node runs recorded.",
-    input: "Input",
-    output: "Output",
     columns: {
-      harness: "Harness",
+      phase: "Phase",
+      model: "Model (requested → routed)",
       status: "Status",
       duration: "Duration",
       tokens: "Tokens (in/out)",
@@ -858,9 +757,9 @@ const en: TranslationDict = {
   settings: {
     title: "Settings",
     subtitle: "Configure Claude Code to point at this gateway. Self-hosted, single-tenant — no multi-tenant auth required.",
-    deployedHarness: "Deployed harness",
-    deployedHarnessOk: "Active",
-    deployedHarnessNotOk: "Not deployed",
+    routerConfigured: "Router configured",
+    routerConfiguredOk: "Ready to receive requests",
+    routerConfiguredNotOk: "Routes missing a credential",
     authEnabled: "Auth (HARNESS_API_KEY)",
     authEnabledOk: "Enabled",
     authEnabledNotOk: "Open (no auth)",
@@ -869,27 +768,28 @@ const en: TranslationDict = {
     encryptionKeyNotOk: "Using dev fallback",
     encryptionWarningTitle: "Encryption key not set",
     encryptionWarningBody: "API keys are encrypted with HARNESS_ENCRYPTION_KEY, but it is not set — using a deterministic dev fallback. Generate a strong key and add it to .env before deploying for real:",
-    noHarnessWarningTitle: "No harness deployed yet",
-    noHarnessWarningBody: "Open the ",
-    noHarnessWarningBody2: " tab, create or open a harness, then click ",
-    noHarnessWarningBody3: ". Only deployed harnesses receive requests from the gateway.",
+    noRouterWarningTitle: "Router not configured",
+    noRouterWarningBody: "At least one route has no credential/model. Create a credential with the \"Z.ai (GLM) — Anthropic API\" preset in the",
     setupTitle: "Claude Code setup",
-    setupDesc: "Set these environment variables in your shell before running claude. Claude Code will then route every request through this gateway.",
-    setupHint: "You can put these in your ",
-    setupHint2: " or ",
-    setupComment: "# Point Claude Code at this gateway instead of api.anthropic.com",
-    setupComment2: "# Use the HARNESS_API_KEY from your .env (or any value if auth is disabled)",
+    setupDesc: "Follow these steps and the engine will switch LLMs for you, transparently.",
+    step1: "In the Credentials tab, create a credential with the \"Z.ai (GLM) — Anthropic API\" preset (your Z.ai key).",
+    step2: "In the Router tab, pick the credential on each phase and save.",
+    step3: "In ~/.claude/settings.json, inside \"env\", paste the block below.",
+    step4: "Keep the app running (bun run dev) and use claude as usual.",
+    envBlockTitle: "settings.json env block",
+    removeDefaultsTitle: "Important: remove the model mappings",
+    removeDefaultsBody: "If ANTHROPIC_DEFAULT_*_MODEL vars exist in your settings.json, Claude Code never asks for \"haiku\" and the Utility phase can't be detected. Remove all of them (and the old Z.ai ANTHROPIC_BASE_URL):",
+    cacheNote: "Note: switching models across phases invalidates the provider's prompt cache — input token cost may increase slightly. That's the price of swapping brains.",
     gatewayEndpoints: "Gateway endpoints",
     gatewayEndpointsDesc: "Anthropic-compatible API surface.",
     endpoints: {
       postMessages: "POST /api/v1/messages",
+      countTokens: "POST /api/v1/messages/count_tokens",
       getModels: "GET /api/v1/models",
-      getMessagesAlias: "GET /api/v1/messages",
     },
     endpointLabels: {
       anthropic: "Anthropic Messages API",
       modelsList: "Models list",
-      alias: "Same (alias)",
     },
   },
 };
@@ -899,18 +799,24 @@ const en: TranslationDict = {
 // ─────────────────────────────────────────────────────────────────────────────
 const es: TranslationDict = {
   app: {
-    title: "LLM Harness",
-    subtitle: "Constructor visual de workflows para agentes de código",
-    deployed: "Gateway activo",
-    notDeployed: "Ningún harness desplegado",
-    bannerTip: "Consejo: despliega un harness y apunta Claude Code a este gateway. Mira la pestaña",
+    title: "LLM Router",
+    subtitle: "Motor de cambio de LLMs por fase para Claude Code",
+    configured: "Router activo",
+    notConfigured: "Router sin configurar",
+    bannerTip: "Consejo: configura el router y apunta Claude Code a este gateway. Mira la pestaña",
     bannerTipLink: "Configuración",
-    footer: "LLM Harness · Self-hosted · ",
+    footer: "LLM Router · Self-hosted · ",
     footerTag: "Single-tenant · Local-first",
     openSource: "Código abierto",
   },
+  theme: {
+    light: "Claro",
+    dark: "Oscuro",
+    system: "Sistema",
+    toggle: "Cambiar tema",
+  },
   nav: {
-    harnesses: "Harnesses",
+    router: "Router",
     credentials: "Credenciales",
     executions: "Ejecuciones",
     settings: "Configuración",
@@ -985,118 +891,79 @@ const es: TranslationDict = {
     updatedToast: "Credencial actualizada",
     discoveredToast: "{count} modelos descubiertos",
   },
-  harnesses: {
-    title: "Harnesses",
-    subtitle: "Cada harness es un workflow visual que orquesta LLMs. Despliega uno para que reciba las peticiones de Claude Code.",
-    new: "Nuevo Harness",
-    newHarness: "Nuevo Harness",
-    executionCount: "ejecuciones",
-    noHarnessesYet: "Aún no hay harnesses.",
-    createFirst: "Crea tu primer harness",
-    deployed: "DESPLEGADO",
-    deploy: "Desplegar",
-    deployedToast: "¡Harness desplegado! Ahora recibe las peticiones de Claude Code.",
-    deletedToast: "Harness eliminado",
-    createdToast: "Nuevo harness creado",
-    description: "Descripción",
-    descriptionPlaceholder: "Describe brevemente qué hace este harness...",
-    export: "Exportar",
-    exportedToast: "Harness exportado como JSON",
-    back: "Volver",
-  },
-  canvas: {
-    addNode: "Añadir nodo",
-    palette: {
-      trigger: "Trigger",
-      triggerDesc: "Punto de entrada",
-      model: "Modelo",
-      modelDesc: "Llama a una LLM",
-      condition: "Condición",
-      conditionDesc: "Bifurca por variable",
-      end: "Fin",
-      endDesc: "Termina el workflow",
-      dragHint: "Arrastra al canvas o haz clic para añadir.",
-    },
-    nodes: {
-      trigger: "Trigger",
-      model: "Modelo",
-      condition: "Condición",
-      end: "Fin",
-      planner: "Planificador",
-      reviewer: "Revisor",
-      executor: "Ejecutor",
-      escalate: "Escalar",
-      noModel: "(sin modelo)",
-      start: "Inicio",
-      terminate: "Terminar",
-    },
-    edges: {
-      true: "VERDADERO",
-      false: "FALSO",
-    },
-  },
-  nodeConfig: {
-    noSelection: "Ningún nodo seleccionado",
-    noSelectionHint: "Haz clic en un nodo del canvas para editar sus propiedades.",
+  router: {
+    title: "Router de fases",
+    subtitle: "Cada fase de Claude Code (planificar, ejecutar, revisar, utilidad) usa la LLM configurada abajo. El gateway es un proxy transparente — solo cambia el modelo.",
+    save: "Guardar",
+    saved: "Configuración del router guardada",
+    saveFailed: "Error al guardar",
+    loadFailed: "Error al cargar la configuración",
     credential: "Credencial",
+    credentialPlaceholder: "Selecciona una credencial...",
+    credentialNone: "— ninguna —",
     model: "Modelo",
-    modelPlaceholder: "Escribe un id de modelo (ej: glm-5.3)...",
-    noCredentialsWarning: "Aún no hay credenciales. Crea una en la pestaña Credenciales primero.",
-    suggestedModels: "Modelos sugeridos",
-    suggestedModelsHint: "Haz clic en \"Descubrir\" arriba para obtener la lista en vivo del proveedor.",
-    systemPrompt: "Prompt del sistema",
-    systemPromptPlaceholder: "Eres un revisor de código meticuloso...",
-    temperature: "Temperatura",
-    maxTokens: "Tokens máximos de salida",
-    topP: "Top P",
-    extendedThinking: "Razonamiento extendido",
-    extendedThinkingDesc: "Activa modo de razonamiento (Claude extended thinking, GLM thinking, DeepSeek R1).",
-    thinkingBudget: "Presupuesto de razonamiento (tokens)",
-    trigger: "Trigger",
-    triggerDesc: "El nodo trigger es el punto de entrada del workflow. Cada petición recibida por el gateway empieza aquí y fluye por la arista conectada.",
-    end: "Fin",
-    endDesc: "El nodo fin termina el workflow. El último mensaje del asistente producido aguas arriba se envía de vuelta al cliente (Claude Code) como respuesta final.",
-    condition: "Condición",
-    conditionDesc: "Bifurca basado en una variable de la conversación. Si la variable no existe en \"variables\", el motor intenta extraerla del último mensaje del asistente (ej: \"score: 72\").",
-    conditionField: "Campo",
-    conditionFieldPlaceholder: "score | tokens | complexity | approved",
-    operator: "Operador",
-    value: "Valor",
-    valuePlaceholder: "7 | 100000 | high | true",
-    valueHint: "Consejo: los números se comparan numéricamente; las strings lexicográficamente.",
-    operators: {
-      ">": "> mayor que",
-      ">=": ">= mayor o igual",
-      "<": "< menor que",
-      "<=": "<= menor o igual",
-      "==": "== igual",
-      "!=": "!= diferente",
-      contains: "contiene (subcadena)",
+    modelPlaceholder: "ej: glm-5.3 o glm-5.3[1m]",
+    phases: {
+      PLAN: "Planificación",
+      EXECUTE: "Ejecución",
+      REVIEW: "Revisión",
+      UTILITY: "Utilidad",
+      FALLBACK: "Fallback",
     },
-    trueBranch: "Branch VERDADERO",
-    falseBranch: "Branch FALSO",
-    trueBranchHint: "Conecta desde el handle inferior izquierdo (verde).",
-    falseBranchHint: "Conecta desde el handle inferior derecho (rojo).",
+    phaseDesc: {
+      PLAN: "plan mode activo (tool ExitPlanMode presente)",
+      EXECUTE: "bucle principal del agente",
+      REVIEW: "subagentes de revisión de código",
+      UTILITY: "títulos, resúmenes, background (haiku)",
+      FALLBACK: "cuando nada coincide",
+    },
+    banner: {
+      noCredential: "Ruta sin credencial o modelo",
+      noCredentialDesc: "El gateway devolverá 503 para esta fase. Selecciona una credencial y un modelo (crea nuevas en la pestaña Credenciales).",
+      noRules: "Ninguna regla activa",
+      noRulesDesc: "Sin reglas habilitadas, todas las peticiones caen en el fallback.",
+    },
+    rules: {
+      title: "Reglas de detección",
+      subtitle: "Se evalúan en orden; la primera que coincide define la fase. Edita, reordena o añade.",
+      add: "Nueva regla",
+      newName: "Nueva regla",
+      enabled: "Activa",
+      name: "Nombre",
+      value: "Valor",
+      invalidRegex: "Expresión regular inválida — corrígela antes de guardar.",
+    },
+    fields: {
+      requestedModel: "Modelo pedido",
+      tools: "Herramientas",
+      systemPrompt: "System prompt",
+      lastMessages: "Últimos mensajes",
+    },
+    operators: {
+      contains: "contiene",
+      regex: "regex",
+      equals: "igual a",
+    },
   },
   executions: {
     title: "Ejecuciones",
-    subtitle: "Cada petición que Claude Code envía al gateway crea una ejecución. Haz clic en cualquier fila para ver el replay nodo por nodo.",
+    subtitle: "Cada petición que Claude Code envía al gateway crea una ejecución. Haz clic en cualquier fila para ver los detalles.",
     noExecutions: "Aún no hay ejecuciones.",
-    noExecutionsHint: "Despliega un harness y haz una petición vía Claude Code para ver ejecuciones aquí.",
+    noExecutionsHint: "Apunta Claude Code a este gateway y haz una petición para ver ejecuciones aquí.",
     backToList: "Volver a la lista",
     detail: "Detalle de ejecución",
     duration: "Duración",
     tokens: "Tokens",
     tokensInOut: "Tokens (entra/sale)",
     cost: "Coste",
-    nodes: "Nodos",
+    matchedRule: "Regla que coincidió",
+    routedModel: "Modelo enrutado",
+    requestSummary: "Resumen de la petición (truncado)",
+    responseSummary: "Resumen de la respuesta (truncado)",
     error: "Error",
-    replayTitle: "Replay nodo por nodo",
-    noNodeRuns: "No hay ejecuciones de nodo registradas.",
-    input: "Entrada",
-    output: "Salida",
     columns: {
-      harness: "Harness",
+      phase: "Fase",
+      model: "Modelo (pedido → enrutado)",
       status: "Estado",
       duration: "Duración",
       tokens: "Tokens (entra/sale)",
@@ -1145,9 +1012,9 @@ const es: TranslationDict = {
   settings: {
     title: "Configuración",
     subtitle: "Configura Claude Code para apuntar a este gateway. Self-hosted, single-tenant — sin auth multi-tenant.",
-    deployedHarness: "Harness desplegado",
-    deployedHarnessOk: "Activo",
-    deployedHarnessNotOk: "No desplegado",
+    routerConfigured: "Router configurado",
+    routerConfiguredOk: "Listo para recibir peticiones",
+    routerConfiguredNotOk: "Falta credencial en las rutas",
     authEnabled: "Auth (HARNESS_API_KEY)",
     authEnabledOk: "Activada",
     authEnabledNotOk: "Abierta (sin auth)",
@@ -1156,27 +1023,28 @@ const es: TranslationDict = {
     encryptionKeyNotOk: "Usando fallback de dev",
     encryptionWarningTitle: "Clave de cifrado no definida",
     encryptionWarningBody: "Las API keys se cifran con HARNESS_ENCRYPTION_KEY, pero no está definida — usando un fallback de dev determinístico. Genera una clave fuerte y añádela a .env antes de desplegar en serio:",
-    noHarnessWarningTitle: "Aún no hay harness desplegado",
-    noHarnessWarningBody: "Abre la pestaña ",
-    noHarnessWarningBody2: ", crea o abre un harness, y haz clic en ",
-    noHarnessWarningBody3: ". Solo los harnesses desplegados reciben peticiones del gateway.",
+    noRouterWarningTitle: "Router sin configurar",
+    noRouterWarningBody: "Al menos una ruta está sin credencial/modelo. Crea una credencial con el preset \"Z.ai (GLM) — Anthropic API\" en la pestaña",
     setupTitle: "Configuración de Claude Code",
-    setupDesc: "Define estas variables de entorno en tu shell antes de ejecutar claude. Claude Code entonces enrutará cada petición por este gateway.",
-    setupHint: "Puedes ponerlas en tu ",
-    setupHint2: " o ",
-    setupComment: "# Apunta Claude Code a este gateway en vez de api.anthropic.com",
-    setupComment2: "# Usa el HARNESS_API_KEY de tu .env (o cualquier valor si auth está desactivada)",
+    setupDesc: "Sigue estos pasos y el motor cambiará las LLMs por ti, de forma transparente.",
+    step1: "En la pestaña Credenciales, crea una credencial con el preset \"Z.ai (GLM) — Anthropic API\" (tu clave de Z.ai).",
+    step2: "En la pestaña Router, selecciona la credencial en cada fase y guarda.",
+    step3: "En ~/.claude/settings.json, dentro de \"env\", pega el bloque de abajo.",
+    step4: "Mantén la app corriendo (bun run dev) y usa claude con normalidad.",
+    envBlockTitle: "Bloque env del settings.json",
+    removeDefaultsTitle: "Importante: elimina los mapeos de modelo",
+    removeDefaultsBody: "Si existen variables ANTHROPIC_DEFAULT_*_MODEL en tu settings.json, Claude Code nunca pide \"haiku\" y la fase Utilidad no se puede detectar. Elimínalas todas (y el ANTHROPIC_BASE_URL antiguo de Z.ai):",
+    cacheNote: "Nota: cambiar de modelo entre fases invalida la prompt cache del proveedor — el coste de tokens de entrada puede subir un poco. Es el precio de cambiar de cerebro.",
     gatewayEndpoints: "Endpoints del gateway",
     gatewayEndpointsDesc: "Superficie de API compatible con Anthropic.",
     endpoints: {
       postMessages: "POST /api/v1/messages",
+      countTokens: "POST /api/v1/messages/count_tokens",
       getModels: "GET /api/v1/models",
-      getMessagesAlias: "GET /api/v1/messages",
     },
     endpointLabels: {
       anthropic: "Anthropic Messages API",
       modelsList: "Lista de modelos",
-      alias: "Mismo (alias)",
     },
   },
 };

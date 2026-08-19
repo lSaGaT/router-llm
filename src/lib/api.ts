@@ -39,23 +39,47 @@ export interface ProviderModel {
   lastSeenAt: string;
 }
 
-export interface Harness {
+export type PhaseKeyT = "PLAN" | "EXECUTE" | "REVIEW" | "UTILITY";
+export type RouteKeyT = PhaseKeyT | "FALLBACK";
+
+export interface RouteTarget {
+  credentialId: string | null;
+  modelId: string | null;
+  thinkingOverride?: "preserve" | "disable" | { type: "enabled"; budget_tokens: number };
+}
+
+export interface DetectionRule {
   id: string;
   name: string;
-  description: string | null;
-  graphJson: string;
-  isDeployed: boolean;
+  field: "requestedModel" | "tools" | "systemPrompt" | "lastMessages";
+  operator: "contains" | "regex" | "equals";
+  value: string;
+  phase: PhaseKeyT;
+  enabled: boolean;
+  priority: number;
+}
+
+export interface RouterConfigData {
+  version: 1;
+  routes: Record<RouteKeyT, RouteTarget>;
+  rules: DetectionRule[];
+}
+
+export interface RouterConfigResponse {
+  id: string;
   version: number;
-  executionCount: number;
-  createdAt: string;
-  updatedAt: string;
+  config: RouterConfigData;
 }
 
 export interface Execution {
   id: string;
   harnessId: string | null;
-  harnessName: string;
+  harnessName: string | null;
   status: "running" | "completed" | "failed" | "cancelled";
+  phase: PhaseKeyT | null;
+  matchedRule: string | null;
+  requestedModel: string | null;
+  routedModel: string | null;
   totalTokensIn: number;
   totalTokensOut: number;
   totalCostUsd: number;
@@ -88,8 +112,7 @@ export interface NodeRun {
 export interface ExecutionDetail extends Execution {
   request: unknown;
   response: unknown;
-  graph: { nodes: unknown[]; edges: unknown[] } | null;
-  nodeRuns: NodeRun[];
+  routedCredentialId: string | null;
 }
 
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
@@ -129,21 +152,15 @@ export const api = {
     jsonFetch<{ count: number; models: ProviderModel[] }>(`/api/credentials/${id}/models`, { method: "POST" }),
   listModels: (id: string) => jsonFetch<{ models: ProviderModel[] }>(`/api/credentials/${id}/models`),
 
-  // Harnesses
-  listHarnesses: () => jsonFetch<{ harnesses: Harness[] }>("/api/harnesses"),
-  getHarness: (id: string) => jsonFetch<Harness>(`/api/harnesses/${id}`),
-  createHarness: (body: { name: string; description?: string; graphJson: string }) =>
-    jsonFetch<Harness>("/api/harnesses", { method: "POST", body: JSON.stringify(body) }),
-  updateHarness: (
-    id: string,
-    body: { name?: string; description?: string; graphJson?: string; isDeployed?: boolean },
-  ) => jsonFetch<Harness>(`/api/harnesses/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-  deleteHarness: (id: string) => jsonFetch<{ ok: true }>(`/api/harnesses/${id}`, { method: "DELETE" }),
+  // Phase router
+  getRouter: () => jsonFetch<RouterConfigResponse>("/api/router"),
+  updateRouter: (config: RouterConfigData) =>
+    jsonFetch<RouterConfigResponse>("/api/router", { method: "PUT", body: JSON.stringify({ config }) }),
 
   // Executions
-  listExecutions: (limit = 20, offset = 0, harnessId?: string) =>
+  listExecutions: (limit = 20, offset = 0) =>
     jsonFetch<{ executions: Execution[]; total: number }>(
-      `/api/executions?limit=${limit}&offset=${offset}${harnessId ? `&harnessId=${harnessId}` : ""}`,
+      `/api/executions?limit=${limit}&offset=${offset}`,
     ),
   getExecution: (id: string) => jsonFetch<ExecutionDetail>(`/api/executions/${id}`),
 
@@ -153,9 +170,9 @@ export const api = {
       gatewayBaseUrl: string;
       authEnabled: boolean;
       apiKeyMasked: string | null;
-      hasDeployedHarness: boolean;
+      routerConfigured: boolean;
       credentialCount: number;
       encryptionKeySet: boolean;
-      claudeCodeEnv: { ANTHROPIC_BASE_URL: string; ANTHROPIC_API_KEY: string };
+      claudeCodeEnv: { ANTHROPIC_BASE_URL: string; ANTHROPIC_AUTH_TOKEN: string };
     }>("/api/settings"),
 };

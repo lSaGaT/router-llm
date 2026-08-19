@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
-    "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
-    "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
+    "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && (cp .env .next/standalone/ || true)",
+    "start": "NODE_ENV=production HOSTNAME=0.0.0.0 bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
     "db:push": "prisma db push --accept-data-loss",
     "db:generate": "prisma generate",
@@ -13,9 +13,6 @@
     "db:reset": "prisma migrate reset"
   },
   "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/sortable": "^10.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.1.1",
     "@mdxeditor/editor": "^3.39.1",
     "@prisma/client": "^6.11.1",
@@ -70,7 +67,6 @@
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^3.0.3",
     "react-syntax-highlighter": "^15.6.1",
-    "reactflow": "^11.11.4",
     "recharts": "^2.15.4",
     "sharp": "^0.34.3",
     "sonner": "^2.0.6",
@@ -78,7 +74,6 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",
     "vaul": "^1.1.2",
-    "z-ai-web-dev-sdk": "^0.0.18",
     "zod": "^4.0.2",
     "zustand": "^5.0.6"
   },

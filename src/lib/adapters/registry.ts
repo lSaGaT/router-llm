@@ -8,7 +8,7 @@
  */
 import { AnthropicAdapter } from "./anthropic";
 import { OpenAICompatibleAdapter } from "./openai-compatible";
-import type { CredentialPayload, ModelAdapter } from "@/lib/workflow/types";
+import type { CredentialPayload, ModelAdapter } from "@/lib/adapters/types";
 import { decryptCredentialPayload } from "@/lib/crypto";
 
 interface CredentialRow {
@@ -74,6 +74,25 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
       "claude-3-7-sonnet-20250219",
       "claude-3-5-haiku-20241022",
       "claude-3-5-sonnet-20241022",
+    ],
+  },
+
+  // ─── Z.ai (GLM) — Anthropic-protocol endpoint (used by the phase router) ───
+  {
+    key: "anthropic",
+    label: "Z.ai (GLM) — Anthropic API",
+    description:
+      "GLM via Z.ai's Anthropic-native endpoint. Required for the phase router (transparent proxy — tools and thinking pass through).",
+    defaultBaseUrl: "https://api.z.ai/api/anthropic",
+    docsUrl: "https://docs.z.ai/devpack/tooluse/claude",
+    supportsDiscovery: false,
+    knownModels: [
+      "glm-5.3",
+      "glm-5.2",
+      "glm-5-turbo",
+      "glm-4.6",
+      "glm-4.5",
+      "glm-4.5-air",
     ],
   },
 

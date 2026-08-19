@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { encryptCredentialPayload } from "@/lib/crypto";
-import type { CredentialPayload } from "@/lib/workflow/types";
+import type { CredentialPayload } from "@/lib/adapters/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,7 +46,7 @@ export async function PATCH(
   const existing = await db.credential.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const data: { name?: string; notes?: string; baseUrl?: string; encryptedSecret?: string; ivAuth?: string } = {};
+  const data: { name?: string; notes?: string; baseUrl?: string | null; encryptedSecret?: string; ivAuth?: string } = {};
   if (name) data.name = name;
   if (notes !== undefined) data.notes = notes;
   if (baseUrl !== undefined) data.baseUrl = baseUrl || null;

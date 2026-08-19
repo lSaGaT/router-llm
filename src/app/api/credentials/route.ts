@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { encryptCredentialPayload } from "@/lib/crypto";
 import { PROVIDER_PRESETS, getAdapterForCredential } from "@/lib/adapters/registry";
-import type { CredentialPayload } from "@/lib/workflow/types";
+import type { CredentialPayload } from "@/lib/adapters/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -151,28 +151,53 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Optional auto-discovery — fetch the model list right after creation
-  // so the user doesn't have to click "Discover" manually. Failures are
-  // swallowed (we just return discoveredCount: 0).
+  // Optional auto-population of the model list right after creation so the
+  // user doesn't have to click "Discover" manually.
+  // - Providers WITHOUT a /v1/models endpoint (Anthropic-protocol presets,
+  //   e.g. "Z.ai (GLM) — Anthropic API") are seeded from preset.knownModels.
+  // - Providers with discovery get the real /v1/models call; on failure we
+  //   fall back to knownModels when the preset has them.
+  // Failures are swallowed (we just return discoveredCount: 0).
+  const seedFromKnownModels = async (): Promise<number> => {
+    if (!preset.knownModels || preset.knownModels.length === 0) return 0;
+    await db.providerModel.deleteMany({ where: { credentialId: credential.id } });
+    await db.providerModel.createMany({
+      data: preset.knownModels.map((id) => ({
+        credentialId: credential.id,
+        modelId: id,
+        displayName: id,
+        lastSeenAt: new Date(),
+      })),
+    });
+    return preset.knownModels.length;
+  };
+
   let discoveredCount = 0;
   if (autoDiscover) {
-    try {
-      const { adapter } = await getAdapterForCredential(credential);
-      const models = await adapter.listModels();
-      if (models.length > 0) {
-        await db.providerModel.deleteMany({ where: { credentialId: credential.id } });
-        await db.providerModel.createMany({
-          data: models.map((m) => ({
-            credentialId: credential.id,
-            modelId: m.id,
-            displayName: m.displayName,
-            lastSeenAt: new Date(),
-          })),
-        });
-        discoveredCount = models.length;
+    if (!preset.supportsDiscovery) {
+      discoveredCount = await seedFromKnownModels();
+    } else {
+      try {
+        const { adapter } = await getAdapterForCredential(credential);
+        const models = await adapter.listModels();
+        if (models.length > 0) {
+          await db.providerModel.deleteMany({ where: { credentialId: credential.id } });
+          await db.providerModel.createMany({
+            data: models.map((m) => ({
+              credentialId: credential.id,
+              modelId: m.id,
+              displayName: m.displayName,
+              lastSeenAt: new Date(),
+            })),
+          });
+          discoveredCount = models.length;
+        } else {
+          discoveredCount = await seedFromKnownModels();
+        }
+      } catch {
+        // Discovery failure is non-fatal — fall back to knownModels if present.
+        discoveredCount = await seedFromKnownModels();
       }
-    } catch {
-      // Discovery failure is non-fatal — user can retry from the UI.
     }
   }
 

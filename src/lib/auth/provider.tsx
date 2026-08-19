@@ -52,8 +52,24 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Initialize from localStorage on first render (lazy initializer — no flash, no effect).
-  const [status, setStatus] = useState<PinStatus>(() => getPinStatus());
+  // Hydration-safe: the first render (SSR + client hydration) uses a fixed
+  // default; the real localStorage state is adopted right after mount.
+  // Reading localStorage in a lazy useState initializer made the client's
+  // hydration tree differ from the server's (React hydration mismatch).
+  // Default is unlocked/no-PIN so PIN-less users get no flash; users with a
+  // PIN see the lock screen one frame later, after mount.
+  const [status, setStatus] = useState<PinStatus>({
+    hasPin: false,
+    autoLockMs: null,
+    unlocked: true,
+  });
+
+  // Adopt the real lock state from localStorage once mounted.
+  useEffect(() => {
+    // One intentional sync-from-localStorage on mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStatus(getPinStatus());
+  }, []);
 
   // Refresh status from localStorage
   const refresh = useCallback(() => {
