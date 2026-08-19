@@ -293,7 +293,8 @@ export function RouterView() {
                       <SelectItem value="none">{t("router.credentialNone")}</SelectItem>
                       {credentials.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
-                          {c.name} ({c.providerLabel || c.provider})
+                          {c.name} ({c.providerLabel || c.provider}){" "}
+                          {c.protocol === "openai_compat" ? `· ${t("router.protocolOpenAi")}` : `· ${t("router.protocolAnthropic")}`}
                         </SelectItem>
                       ))}
                     </SelectContent>

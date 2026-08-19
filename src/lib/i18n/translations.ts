@@ -129,6 +129,8 @@ interface TranslationDict {
     credential: string;
     credentialPlaceholder: string;
     credentialNone: string;
+    protocolAnthropic: string;
+    protocolOpenAi: string;
     model: string;
     modelPlaceholder: string;
     phases: {
@@ -389,6 +391,8 @@ const ptBR: TranslationDict = {
     credential: "Credencial",
     credentialPlaceholder: "Selecione uma credencial...",
     credentialNone: "— nenhuma —",
+    protocolAnthropic: "Anthropic",
+    protocolOpenAi: "OpenAI",
     model: "Modelo",
     modelPlaceholder: "ex: glm-5.3 ou glm-5.3[1m]",
     phases: {
@@ -645,6 +649,8 @@ const en: TranslationDict = {
     credential: "Credential",
     credentialPlaceholder: "Select a credential...",
     credentialNone: "— none —",
+    protocolAnthropic: "Anthropic",
+    protocolOpenAi: "OpenAI",
     model: "Model",
     modelPlaceholder: "e.g. glm-5.3 or glm-5.3[1m]",
     phases: {
@@ -901,6 +907,8 @@ const es: TranslationDict = {
     credential: "Credencial",
     credentialPlaceholder: "Selecciona una credencial...",
     credentialNone: "— ninguna —",
+    protocolAnthropic: "Anthropic",
+    protocolOpenAi: "OpenAI",
     model: "Modelo",
     modelPlaceholder: "ej: glm-5.3 o glm-5.3[1m]",
     phases: {

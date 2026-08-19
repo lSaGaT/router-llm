@@ -115,6 +115,11 @@ export function CredentialsView() {
                 <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
                   {c.providerLabel || PROVIDER_LABELS[c.provider] || c.provider}
                 </Badge>
+                {c.protocol ? (
+                  <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
+                    {c.protocol === "openai_compat" ? "OpenAI" : "Anthropic"}
+                  </Badge>
+                ) : null}
                 <span className="truncate">{c.apiKeyMasked}</span>
               </div>
             </button>
