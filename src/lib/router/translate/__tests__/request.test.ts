@@ -301,7 +301,7 @@ describe("anthropicToOpenAiBody", () => {
       service_tier: "auto",
       mcp_servers: [{ type: "url", url: "https://x" }],
     } as AnthropicRequestBody);
-    const o = r.out as Record<string, unknown>;
+    const o = r.out as unknown as Record<string, unknown>;
     expect(o.top_k).toBeUndefined();
     expect(o.service_tier).toBeUndefined();
     expect(o.mcp_servers).toBeUndefined();
