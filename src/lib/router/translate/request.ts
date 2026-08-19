@@ -126,7 +126,7 @@ export function anthropicToOpenAiBody(body: AnthropicRequestBody): TranslatedReq
   // mcp_servers, context_management, cache_control (no cross-provider
   // prompt-caching in this phase).
 
-  return { out: out as TranslatedRequest["out"], issues };
+  return { out: out as unknown as TranslatedRequest["out"], issues };
 }
 
 // ---------------------------------------------------------------------------
@@ -136,10 +136,13 @@ export function anthropicToOpenAiBody(body: AnthropicRequestBody): TranslatedReq
 function convertSystem(system: AnthropicRequestBody["system"]): string | null {
   if (typeof system === "string" && system.length > 0) return system;
   if (Array.isArray(system)) {
-    const parts = system
-      .filter((b): b is { type: string; text?: unknown } => typeof b === "object" && b !== null)
-      .map((b) => (typeof b.text === "string" ? b.text : ""))
-      .filter((t) => t.length > 0);
+    const parts: string[] = [];
+    for (const b of system) {
+      const text = typeof b === "object" && b !== null && typeof (b as { text?: unknown }).text === "string"
+        ? (b as { text: string }).text
+        : "";
+      if (text.length > 0) parts.push(text);
+    }
     if (parts.length > 0) return parts.join("\n\n");
   }
   return null;
