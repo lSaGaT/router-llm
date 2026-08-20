@@ -1,18 +1,17 @@
-# LLM Harness
+# LLM Router
 
-**Self-hosted visual workflow builder for coding agents.**
+**Self-hosted phase-based LLM switching engine for Claude Code.**
 
-Build your own AI coding harness — visually orchestrate multiple LLMs, conditions, and tools
-behind a single Anthropic-compatible gateway that [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
-(or any Anthropic-API-compatible client) talks to.
+Runs a transparent Anthropic-compatible gateway on `localhost:3000` that intercepts every request
+Claude Code sends, detects which *phase* the agent is in (planning, executing, reviewing, utility),
+and routes it to the best LLM for that phase — all transparently.
 
-> Think "n8n for LLMs" — the developer keeps using Claude Code as their daily driver,
-> and your harness decides *who* plans, *who* executes, *who* reviews, *when* to escalate,
-> and *when* to ask for human approval.
+> Think "traffic controller for LLMs" — Claude Code keeps working as usual, and your router
+> decides *which brain* handles each phase, swapping models on the fly without any client-side changes.
 
 ---
 
-## What it does
+## How it works
 
 ```
 DEVELOPER
@@ -21,95 +20,177 @@ DEVELOPER
 CLAUDE CODE                  ← unchanged developer experience
    │  Anthropic API
    ▼
-LLM HARNESS                  ← this project (your localhost)
-   │  - Canvas (build the workflow visually)
-   │  - Engine (traverses the graph per request)
-   │  - Gateway (Anthropic-compatible /v1/messages + /v1/models)
+LLM ROUTER                   ← this project (your localhost)
+   │  - Phase Detection (rules on model/tools/system prompt)
+   │  - Protocol Dispatch (anthropic passthrough / openai_compat translation)
+   │  - Proxy (transparent SSE pass-through + usage tracking)
    │
    ├──► Anthropic (Claude)
    ├──► Z.ai (GLM)
    ├──► DeepSeek
    ├──► OpenRouter
    ├──► OpenAI
+   ├──► xAI (Grok)
+   ├──► MiniMax
    ├──► Moonshot (Kimi)
+   ├──► Mistral
    ├──► Google (Gemini)
-   └──► Ollama (local)
+   ├──► Groq
+   ├──► Together AI
+   ├──► Perplexity
+   ├──► Cohere
+   ├──► Fireworks AI
+   ├──► Novita AI
+   ├──► AI21 Labs
+   ├──► Ollama (local)
+   ├──► LM Studio (local)
+   └──► vLLM / SGLang / Custom
 ```
 
-You build a **Harness** (a directed graph of nodes) on the visual canvas, click **Deploy**,
-and from that moment every request Claude Code sends to `localhost:3000/api/v1/messages`
-flows through your graph.
+When Claude Code sends `POST /api/v1/messages`, the router:
+
+1. **Detects the phase** — evaluates configurable detection rules (model name, tools, system prompt, messages) in priority order.
+2. **Resolves the route** — maps the phase to a credential + model + optional thinking override.
+3. **Dispatches by protocol** — `anthropic` credentials pass through byte-intact; `openai_compat` credentials translate the request/response (tools, streaming, usage).
+4. **Streams transparently** — SSE chunks flow to Claude Code unchanged; usage/cost is extracted passively for the execution log.
 
 ---
 
-## Features (Phase 1)
+## Features
 
-### Canvas
-- **React Flow** visual editor with custom node types
-- Drag, connect, branch — like n8n
-- Auto-save + Deploy buttons per harness
-- Export harness as JSON (share, version in Git)
+### Phase Router
+- **5 route slots**: PLAN, EXECUTE, REVIEW, UTILITY, FALLBACK
+- Each slot maps to a **credential + model** — pick different LLMs for different phases
+- **Thinking override** per route: preserve, disable, or set a custom budget
+- Visual configuration via the **Router** tab in the UI
 
-### Node types
-| Node | Purpose |
-|---|---|
-| **Trigger** | Entry point — receives the request from Claude Code |
-| **Model** | Calls an LLM via a credential; supports temperature, max_tokens, top_p, system prompt, extended thinking |
-| **Condition** | IF-style branch on a variable (`score > 7`, `tokens > 100000`, `approved == true`, ...) — emits TRUE / FALSE handles |
-| **End** | Terminates the workflow; the last assistant message becomes the response |
+### Detection Rules
+- Configurable rules evaluated in **priority order** (first match wins)
+- Match against: **model name**, **tools**, **system prompt**, or **last messages**
+- Operators: **contains**, **regex**, **equals** (case-insensitive)
+- Default rules out of the box:
+  - `ExitPlanMode` tool present → PLAN phase
+  - `haiku` in model name → UTILITY phase
+  - Review-related system prompt → REVIEW phase
+  - Everything else → EXECUTE (fallback)
 
-### Credentials (n8n-style)
-- Create a credential per provider (Anthropic, Z.ai, DeepSeek, OpenRouter, OpenAI, Moonshot, Gemini, Ollama, custom)
-- API keys are encrypted at rest with **AES-256-GCM** (`HARNESS_ENCRYPTION_KEY`)
-- "Discover models" button fetches the provider's `/v1/models` and caches them
-- Pick models directly inside a Model node on the canvas
-
-### Gateway (Anthropic-compatible)
-- `POST /api/v1/messages` — full Anthropic Messages API surface
+### Multi-Protocol Gateway
+- `POST /api/v1/messages` — Anthropic Messages API surface
+- `POST /api/v1/messages/count_tokens` — token counting passthrough
 - `GET /api/v1/models` — list models from all configured credentials
-- **SSE streaming** support — Claude Code receives tokens incrementally
+- **Two wire protocols**:
+  - `anthropic` — native Anthropic Messages API (passes through untouched)
+  - `openai_compat` — OpenAI Chat Completions API (translated to/from Anthropic format)
+- **SSE streaming** with passive usage extraction (tokens, cost, latency)
 - Optional auth via `HARNESS_API_KEY`
 
+### Credentials (n8n-style)
+- Create a credential per provider with a **preset** (base URL, known models, docs link)
+- **20+ provider presets**: Anthropic, Z.ai, DeepSeek, OpenAI, xAI, MiniMax, Moonshot, Mistral, Gemini, Groq, Together AI, Perplexity, Cohere, Fireworks AI, Novita AI, AI21 Labs, OpenRouter, Ollama, LM Studio, vLLM
+- API keys encrypted at rest with **AES-256-GCM** (`HARNESS_ENCRYPTION_KEY`)
+- **Discover models** button fetches `/v1/models` and caches them
+- **Protocol badge** shows whether a credential uses Anthropic or OpenAI-compatible protocol
+
 ### Executions & Replay
-- Every request creates an `Execution` row with full input/output
-- Per-node `NodeRun` log: input, output, model used, tokens (in/out), cost, latency
-- Dashboard shows the per-node replay — click any node to expand its I/O
+- Every request creates an `Execution` row with full request/response summaries
+- **Phase routing metadata**: which phase was detected, which rule matched, what model was used
+- Token counts (in/out), cost estimate, duration, status
+- Dashboard shows the per-execution detail
+
+### Internationalization
+- **3 languages**: Portuguese (pt-BR), English, Spanish
+- Language switcher in the header
+
+### Security
+- **PIN lock screen** to protect credentials when stepping away
+- Auto-lock after configurable inactivity (1m, 5m, 15m, 1h)
+- API keys encrypted at rest with AES-256-GCM
 
 ---
 
 ## Quick start (local dev)
 
+### 1. Install deps and configure the .env
+
 ```bash
-# 1. Install deps
 bun install
+```
 
-# 2. Set up env vars
+Create the `.env` file at the project root:
+
+```bash
 cp .env.example .env
-# Generate an encryption key for storing API keys at rest:
+```
+
+Then generate an encryption key and paste it into `.env`:
+
+```bash
 openssl rand -hex 32
-# Paste it into .env as HARNESS_ENCRYPTION_KEY
+```
 
-# 3. Push DB schema
+Your final `.env` should look like this:
+
+```env
+DATABASE_URL=file:./db/custom.db
+
+# Encryption key for API keys at rest (AES-256-GCM).
+# Generated with: openssl rand -hex 32
+HARNESS_ENCRYPTION_KEY=<paste the hex key here>
+
+# Optional: auth key for the gateway.
+# If set, Claude Code must send this as x-api-key or Authorization: Bearer.
+# Leave empty for local dev (no auth required).
+HARNESS_API_KEY=
+```
+
+### 2. Push DB schema and start
+
+```bash
 bun run db:push
-
-# 4. Start dev server
 bun run dev
 # → http://localhost:3000
 ```
 
-Open the UI, create a credential (Anthropic or Z.ai works great), click **Discover**,
-then go to the **Harnesses** tab and click **New Harness**. Wire up:
-`Trigger → Model (Planner) → Model (Executor) → End`. Click **Deploy**.
+### 3. Configure credentials in the UI
 
-Then in another terminal:
+Open the UI, go to **Credenciais**, create a credential (the "Z.ai (GLM) — Anthropic API" preset works great), then go to **Router** and assign credentials to each phase. Click **Save**.
+
+### 4. Configure Claude Code (`~/.claude/settings.json`)
+
+> ⚠️ **Atenção**: os nomes das variáveis e o caminho da URL são diferentes do que muitos tutoriais mostram. Siga exatamente como descrito abaixo.
+
+Abra o arquivo `~/.claude/settings.json` e adicione (ou substitua) o bloco `env` dentro dele:
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:3000/api",
+    "ANTHROPIC_AUTH_TOKEN": "qualquer-valor-aqui",
+    "API_TIMEOUT_MS": "1000000"
+  }
+}
+```
+
+**Detalhes importantes:**
+
+| Campo | Valor | Por quê |
+|---|---|---|
+| `ANTHROPIC_BASE_URL` | `http://127.0.0.1:3000/api` | O Claude Code acrescenta `/v1/messages` automaticamente. **Não** use `/api/v1` — resultaria em `/api/v1/v1/messages` (duplo). |
+| `ANTHROPIC_AUTH_TOKEN` | qualquer valor | O Claude Code envia isso como header de auth. Se `HARNESS_API_KEY` estiver vazio no `.env`, qualquer valor funciona. Se estiver definido, deve ser o mesmo valor. |
+| `API_TIMEOUT_MS` | `1000000` | Timeout em milissegundos para requests longos (recomendado: ~16 minutos). Sem isso, o Claude Code pode cortar requests que demoram. |
+
+> ❗ **Não use** `ANTHROPIC_API_KEY` — o Claude Code usa `ANTHROPIC_AUTH_TOKEN` para o header.
+> ❗ **Não use** `ANTHROPIC_BASE_URL` apontando para `/api/v1` — o path final ficaria duplicado.
+
+### 5. Teste!
+
+Abra o Claude Code em outro terminal:
 
 ```bash
-export ANTHROPIC_BASE_URL=http://localhost:3000/api/v1
-export ANTHROPIC_API_KEY=<your HARNESS_API_KEY from .env, or any value if empty>
 claude
 ```
 
-Type something — and watch the execution show up in the **Executions** tab.
+Digite algo — e veja a execução aparecer na aba **Execuções** do LLM Router.
 
 ---
 
@@ -121,7 +202,7 @@ docker compose up -d
 ```
 
 The compose file starts:
-- The Next.js app (UI + Gateway + Engine, all in one process for MVP)
+- The Next.js app (UI + Gateway + Engine, all in one process)
 - A volume for SQLite persistence
 
 See [`docker-compose.yml`](./docker-compose.yml).
@@ -130,12 +211,37 @@ See [`docker-compose.yml`](./docker-compose.yml).
 
 ## Configuration (.env)
 
-| Variable | Required | Default | Description |
+### Como criar o `.env`
+
+```bash
+# Copie o exemplo
+ cp .env.example .env
+
+# Gere a chave de criptografia
+openssl rand -hex 32
+
+# Cole o resultado no .env como HARNESS_ENCRYPTION_KEY
+```
+
+### Variáveis do `.env` (servidor)
+
+| Variável | Obrigatória | Padrão | Descrição |
 |---|---|---|---|
-| `DATABASE_URL` | yes | `file:./db/custom.db` | Prisma datasource. SQLite file by default; swap for `postgres://...` for multi-process. |
-| `HARNESS_ENCRYPTION_KEY` | **prod: yes** | dev fallback | 32+ char hex string used to encrypt API keys at rest. **Set this in production.** Generate with `openssl rand -hex 32`. |
-| `HARNESS_API_KEY` | optional | (disabled) | If set, Claude Code must send this as `x-api-key` or `Authorization: Bearer`. |
-| `PORT` | optional | `3000` | HTTP port for the UI and gateway. |
+| `DATABASE_URL` | sim | `file:./db/custom.db` | Prisma datasource. SQLite por padrão; troque para `postgres://...` se precisar de multi-process. |
+| `HARNESS_ENCRYPTION_KEY` | **prod: sim** | fallback de dev | String hex de 32+ chars para criptografar API keys em repouso. **Defina em produção.** Gere com `openssl rand -hex 32`. |
+| `HARNESS_API_KEY` | opcional | (desabilitado) | Se definido, o Claude Code deve enviar como `x-api-key` ou `Authorization: Bearer`. |
+| `PORT` | opcional | `3000` | Porta HTTP para a UI e o gateway. |
+| `ROUTER_UPSTREAM_TIMEOUT_MS` | opcional | `600000` | Timeout (ms) para requests upstream. Padrão: 10 minutos. |
+
+### Variáveis do `~/.claude/settings.json` (cliente Claude Code)
+
+Estas variáveis ficam no **lado do cliente** (no seu computador), dentro do `settings.json` do Claude Code:
+
+| Variável | Valor esperado | Descrição |
+|---|---|---|
+| `ANTHROPIC_BASE_URL` | `http://127.0.0.1:3000/api` | URL base do gateway. O Claude Code adiciona `/v1/messages` automaticamente — **não** inclua `/v1` na URL. |
+| `ANTHROPIC_AUTH_TOKEN` | qualquer valor | Token de auth. Deve coincidir com `HARNESS_API_KEY` no `.env` (ou qualquer valor se `HARNESS_API_KEY` estiver vazio). |
+| `API_TIMEOUT_MS` | `1000000` | Timeout em ms para requests longos (~16 min). Evita que o Claude Code corte requests demorados. |
 
 ---
 
@@ -144,37 +250,53 @@ See [`docker-compose.yml`](./docker-compose.yml).
 ```
 src/
 ├── app/
-│   ├── page.tsx                  # Main SPA with tabs (Harnesses / Credentials / Executions / Settings)
+│   ├── page.tsx                  # Main SPA with tabs (Router / Credentials / Executions / Settings)
 │   ├── api/
-│   │   ├── credentials/         # CRUD + model discovery
-│   │   ├── harnesses/            # CRUD + deploy
-│   │   ├── executions/           # List + detail (replay)
+│   │   ├── credentials/          # CRUD + model discovery
+│   │   ├── router/               # Router config CRUD
+│   │   ├── executions/           # List + detail
 │   │   ├── settings/             # Gateway status
 │   │   └── v1/
-│   │       └── messages/         # Anthropic-compatible gateway (POST + GET)
+│   │       ├── messages/         # Anthropic-compatible gateway (POST + GET)
+│   │       └── models/           # GET /api/v1/models
 │   └── layout.tsx
 ├── components/
 │   ├── harness/
-│   │   ├── canvas.tsx            # React Flow canvas + custom node types + palette
-│   │   ├── credentials-view.tsx  # n8n-style credential manager
-│   │   ├── harness-editor.tsx    # Editor wrapping canvas + node panel + toolbar
-│   │   ├── node-config-panel.tsx # Side panel for editing selected node
-│   │   ├── executions-view.tsx   # Execution list + replay
-│   │   └── settings-view.tsx     # Gateway status + setup instructions
+│   │   ├── router-view.tsx       # Phase router configuration (routes + detection rules)
+│   │   ├── credentials-view.tsx  # n8n-style credential manager with protocol badges
+│   │   ├── executions-view.tsx   # Execution list + detail
+│   │   ├── settings-view.tsx     # Gateway status + setup instructions
+│   │   ├── lock-screen.tsx       # PIN lock screen
+│   │   ├── lock-button.tsx       # Lock/unlock button
+│   │   ├── theme-toggle.tsx      # Dark/light mode toggle
+│   │   └── language-switcher.tsx # i18n language selector
+│   ├── ui/                       # shadcn/ui components
 │   └── providers.tsx             # React Query provider
 ├── lib/
+│   ├── router/
+│   │   ├── types.ts              # Phase, route, detection rule types + defaults
+│   │   ├── config.ts             # RouterConfig persistence + validation
+│   │   ├── detect.ts             # Phase detection (extract signals, evaluate rules)
+│   │   ├── proxy.ts              # Transparent proxy — the core request handler
+│   │   ├── protocol.ts           # Wire protocol resolution (anthropic vs openai_compat)
+│   │   └── translate/
+│   │       ├── types.ts          # Shared translation types (Anthropic request/response)
+│   │       ├── request.ts        # Anthropic → OpenAI request translation
+│   │       ├── response.ts       # OpenAI → Anthropic response translation
+│   │       └── sse.ts            # OpenAI SSE → Anthropic SSE stream translation
 │   ├── adapters/
 │   │   ├── anthropic.ts          # Native Anthropic Messages API adapter
-│   │   ├── openai-compatible.ts   # Z.ai / DeepSeek / OpenRouter / Ollama / ...
-│   │   └── registry.ts           # Credential → adapter mapping + provider presets
-│   ├── workflow/
-│   │   ├── types.ts              # All shared types (Workflow, Node, Message, ...)
-│   │   └── engine.ts            # Graph traversal, node execution, NodeRun logging
+│   │   ├── openai-compatible.ts  # OpenAI Chat Completions adapter
+│   │   ├── registry.ts           # Provider presets + credential → adapter mapping
+│   │   └── types.ts              # Adapter interface
+│   ├── i18n/
+│   │   ├── translations.ts       # pt-BR, en, es translation dictionaries
+│   │   └── provider.ts           # React context for locale
 │   ├── crypto.ts                 # AES-256-GCM encrypt/decrypt
 │   ├── db.ts                     # Prisma client
 │   └── api.ts                    # Frontend API client
 └── prisma/
-    └── schema.prisma             # Credential, ProviderModel, Harness, Execution, NodeRun
+    └── schema.prisma             # Credential, ProviderModel, Execution, RouterConfig
 ```
 
 ---
@@ -186,30 +308,63 @@ Claude Code request (Anthropic format)
    │
    ▼
 Gateway  POST /api/v1/messages
-   │  - Auth via HARNESS_API_KEY
-   │  - Find deployed Harness
-   │  - Create Execution row
+   │  - Auth via HARNESS_API_KEY (optional)
+   │  - Parse + summarize request body
    ▼
-Engine   executeWorkflow(graph, inputMessages)
-   │  - Find Trigger node
-   │  - For each node:
-   │      Model      → adapter.stream() → SSE chunks back to client
-   │      Condition  → evaluate field op value → pick TRUE/FALSE edge
-   │      End        → terminate
-   │  - Log every node to NodeRun row
+Phase Detection  detectPhase(signals, rules)
+   │  - Extract signals: model, tools, system prompt, messages
+   │  - Evaluate rules in priority order; first match wins
+   │  - Phase → route target (credential + model + thinking override)
    ▼
-Adapter  (Anthropic | OpenAI-compatible)
-   │  - Translates messages
-   │  - Streams tokens via fetch ReadableStream
+Protocol Dispatch
+   │  ┌─ anthropic ─────────────────────────────────────────────┐
+   │  │  Pass through byte-intact (tools, thinking, SSE, etc.)  │
+   │  └─────────────────────────────────────────────────────────┘
+   │  ┌─ openai_compat ─────────────────────────────────────────┐
+   │  │  Translate request: Anthropic → OpenAI Chat Completions │
+   │  │  Translate stream:  OpenAI SSE → Anthropic SSE          │
+   │  │  Translate errors:  OpenAI error shape → Anthropic      │
+   │  └─────────────────────────────────────────────────────────┘
    ▼
-Provider  (Z.ai | DeepSeek | Anthropic | OpenRouter | ...)
+Upstream Provider  (fetch + SSE pass-through)
+   │  - Passive usage scanner reads tokens/cost from stream
+   │  - Bytes flow through TransformStream untouched
+   ▼
+Execution Log  (DB row with phase, rule, model, tokens, cost, duration)
+   │
+   ▼
+Response back to Claude Code (Anthropic format)
 ```
 
-### Why single-process for the MVP?
+---
 
-For Phase 1 (synchronous traversal, no Human Approval nodes), one Next.js process
-handles UI + Gateway + Engine. The only reason to split workers in Phase 2 is
-pause/resume for human-in-the-loop flows.
+## Supported Providers
+
+| Provider | Protocol | Discovery | Preset |
+|---|---|---|---|
+| **Anthropic** (Claude) | anthropic | — | ✅ |
+| **Z.ai** (GLM) — Anthropic API | anthropic | — | ✅ |
+| **Z.ai** (GLM) — OpenAI API | openai_compat | ✅ | ✅ |
+| **DeepSeek** — OpenAI API | openai_compat | ✅ | ✅ |
+| **DeepSeek** — Anthropic API | anthropic | — | ✅ |
+| **OpenAI** | openai_compat | ✅ | ✅ |
+| **xAI** (Grok) | openai_compat | ✅ | ✅ |
+| **MiniMax** | openai_compat | ✅ | ✅ |
+| **Moonshot** (Kimi) | openai_compat | ✅ | ✅ |
+| **Mistral** | openai_compat | ✅ | ✅ |
+| **Google** (Gemini) — OpenAI API | openai_compat | ✅ | ✅ |
+| **Google** (Gemini) — Anthropic API | anthropic | — | ✅ |
+| **Groq** | openai_compat | ✅ | ✅ |
+| **Together AI** | openai_compat | ✅ | ✅ |
+| **Perplexity** (sonar) | openai_compat | ✅ | ✅ |
+| **Cohere** (Command) | openai_compat | ✅ | ✅ |
+| **Fireworks AI** | openai_compat | ✅ | ✅ |
+| **Novita AI** | openai_compat | ✅ | ✅ |
+| **AI21 Labs** (Jamba) | openai_compat | ✅ | ✅ |
+| **OpenRouter** | openai_compat | ✅ | ✅ |
+| **Ollama** (local) | openai_compat | ✅ | ✅ |
+| **LM Studio** (local) | openai_compat | ✅ | ✅ |
+| **vLLM / SGLang / Custom** | openai_compat | ✅ | ✅ |
 
 ---
 
@@ -239,6 +394,7 @@ pause/resume for human-in-the-loop flows.
 - The gateway accepts requests from any origin by default. For dev this is fine; for shared deployments, put it behind a reverse proxy with auth.
 - `HARNESS_API_KEY` is a simple shared secret. Use a strong random value (e.g. `openssl rand -hex 32`).
 - The DB file at `db/custom.db` contains your encrypted credentials — back it up but treat it as secret.
+- The PIN lock screen is local-only (client-side) — it protects against casual access, not determined attackers.
 
 ---
 
@@ -248,4 +404,4 @@ MIT — see [LICENSE](./LICENSE).
 
 ## Contributing
 
-PRs welcome. This is a Phase 1 MVP — see the Roadmap section above for what's planned next.
+PRs welcome. See the Roadmap section above for what's planned next.
