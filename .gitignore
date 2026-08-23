@@ -54,3 +54,6 @@ server.log
 /skills/
 workspace-*/
 workspace-*
+
+# local database (contains credentials)
+db/*.db
