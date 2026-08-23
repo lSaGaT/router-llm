@@ -56,4 +56,14 @@ workspace-*/
 workspace-*
 
 # local database (contains credentials)
-db/*.db
+db/*
+!db/.gitkeep
+
+# scaffold leftovers / non-essential assets (kept locally, not published)
+.zscripts/
+download/
+mini-services/
+tests/
+scripts/
+examples/
+*.pid
