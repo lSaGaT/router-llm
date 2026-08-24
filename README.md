@@ -113,8 +113,7 @@ When Claude Code sends `POST /api/v1/messages`, the router:
 ### 1. Clone and run setup
 
 ```bash
-git clone <your-repo-url>
-cd router-llm
+git clone https://github.com/lSaGaT/router-llm && cd router-llm
 ```
 
 **Linux / Mac:**
