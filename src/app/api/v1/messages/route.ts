@@ -9,7 +9,7 @@
  * tool_use blocks, thinking deltas and SSE events — pass back untouched.
  *
  * Setup for the user:
- *   export ANTHROPIC_BASE_URL=http://localhost:3000/api/v1
+ *   export ANTHROPIC_BASE_URL=http://localhost:3003/api/v1
  *   export ANTHROPIC_AUTH_TOKEN=<HARNESS_API_KEY from your .env, or anything if unset>
  *
  * Auth: HARNESS_API_KEY env var (if set). If empty, no auth (dev only).

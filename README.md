@@ -2,7 +2,7 @@
 
 **Self-hosted phase-based LLM switching engine for Claude Code.**
 
-Runs a transparent Anthropic-compatible gateway on `localhost:3000` that intercepts every request
+Runs a transparent Anthropic-compatible gateway on `localhost:3003` that intercepts every request
 Claude Code sends, detects which *phase* the agent is in (planning, executing, reviewing, utility),
 and routes it to the best LLM for that phase — all transparently.
 
@@ -148,7 +148,7 @@ HARNESS_API_KEY=
 ```bash
 bun run db:push
 bun run dev
-# → http://localhost:3000
+# → http://localhost:3003
 ```
 
 ### 3. Configure credentials in the UI
@@ -164,7 +164,7 @@ Abra o arquivo `~/.claude/settings.json` e adicione (ou substitua) o bloco `env`
 ```json
 {
   "env": {
-    "ANTHROPIC_BASE_URL": "http://127.0.0.1:3000/api",
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:3003/api",
     "ANTHROPIC_AUTH_TOKEN": "qualquer-valor-aqui",
     "API_TIMEOUT_MS": "1000000"
   }
@@ -175,7 +175,7 @@ Abra o arquivo `~/.claude/settings.json` e adicione (ou substitua) o bloco `env`
 
 | Campo | Valor | Por quê |
 |---|---|---|
-| `ANTHROPIC_BASE_URL` | `http://127.0.0.1:3000/api` | O Claude Code acrescenta `/v1/messages` automaticamente. **Não** use `/api/v1` — resultaria em `/api/v1/v1/messages` (duplo). |
+| `ANTHROPIC_BASE_URL` | `http://127.0.0.1:3003/api` | O Claude Code acrescenta `/v1/messages` automaticamente. **Não** use `/api/v1` — resultaria em `/api/v1/v1/messages` (duplo). |
 | `ANTHROPIC_AUTH_TOKEN` | qualquer valor | O Claude Code envia isso como header de auth. Se `HARNESS_API_KEY` estiver vazio no `.env`, qualquer valor funciona. Se estiver definido, deve ser o mesmo valor. |
 | `API_TIMEOUT_MS` | `1000000` | Timeout em milissegundos para requests longos (recomendado: ~16 minutos). Sem isso, o Claude Code pode cortar requests que demoram. |
 
@@ -198,7 +198,7 @@ Digite algo — e veja a execução aparecer na aba **Execuções** do LLM Route
 
 ```bash
 docker compose up -d
-# → http://localhost:3000
+# → http://localhost:3003
 ```
 
 The compose file starts:
@@ -230,7 +230,7 @@ openssl rand -hex 32
 | `DATABASE_URL` | sim | `file:./db/custom.db` | Prisma datasource. SQLite por padrão; troque para `postgres://...` se precisar de multi-process. |
 | `HARNESS_ENCRYPTION_KEY` | **prod: sim** | fallback de dev | String hex de 32+ chars para criptografar API keys em repouso. **Defina em produção.** Gere com `openssl rand -hex 32`. |
 | `HARNESS_API_KEY` | opcional | (desabilitado) | Se definido, o Claude Code deve enviar como `x-api-key` ou `Authorization: Bearer`. |
-| `PORT` | opcional | `3000` | Porta HTTP para a UI e o gateway. |
+| `PORT` | opcional | `3003` | Porta HTTP para a UI e o gateway. |
 | `ROUTER_UPSTREAM_TIMEOUT_MS` | opcional | `600000` | Timeout (ms) para requests upstream. Padrão: 10 minutos. |
 
 ### Variáveis do `~/.claude/settings.json` (cliente Claude Code)
@@ -239,7 +239,7 @@ Estas variáveis ficam no **lado do cliente** (no seu computador), dentro do `se
 
 | Variável | Valor esperado | Descrição |
 |---|---|---|
-| `ANTHROPIC_BASE_URL` | `http://127.0.0.1:3000/api` | URL base do gateway. O Claude Code adiciona `/v1/messages` automaticamente — **não** inclua `/v1` na URL. |
+| `ANTHROPIC_BASE_URL` | `http://127.0.0.1:3003/api` | URL base do gateway. O Claude Code adiciona `/v1/messages` automaticamente — **não** inclua `/v1` na URL. |
 | `ANTHROPIC_AUTH_TOKEN` | qualquer valor | Token de auth. Deve coincidir com `HARNESS_API_KEY` no `.env` (ou qualquer valor se `HARNESS_API_KEY` estiver vazio). |
 | `API_TIMEOUT_MS` | `1000000` | Timeout em ms para requests longos (~16 min). Evita que o Claude Code corte requests demorados. |
 

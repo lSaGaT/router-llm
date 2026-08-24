@@ -25,7 +25,7 @@ export function SettingsView() {
   }
 
   const gatewayHost =
-    typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    typeof window !== "undefined" ? window.location.origin : "http://localhost:3003";
 
   return (
     <div className="space-y-6 max-w-3xl">

@@ -32,7 +32,7 @@ export async function GET() {
     encryptionKeySet: !!process.env.HARNESS_ENCRYPTION_KEY,
     /** Suggested env vars for the user to copy/paste into Claude Code settings. */
     claudeCodeEnv: {
-      ANTHROPIC_BASE_URL: "http://localhost:3000/api/v1",
+      ANTHROPIC_BASE_URL: "http://localhost:3003/api/v1",
       ANTHROPIC_AUTH_TOKEN: process.env.HARNESS_API_KEY || "<anything — gateway auth is off>",
     },
   });
